@@ -11,16 +11,16 @@ export default function Register(){
 
   const router = useRouter()
 
-  const [username,setUsername] = useState("")
-  const [email,setEmail] = useState("")
-  const [password,setPassword] = useState("")
-  const [show,setShow] = useState(false)
-  const [loading,setLoading] = useState(false)
+  const [username,setUsername]=useState("")
+  const [email,setEmail]=useState("")
+  const [password,setPassword]=useState("")
+  const [show,setShow]=useState(false)
+  const [loading,setLoading]=useState(false)
 
   const register = async()=>{
 
     if(!username || !email || !password){
-      toast.error("Isi semua field banh 😹")
+      toast.error("Isi semua field 😹")
       return
     }
 
@@ -33,7 +33,7 @@ export default function Register(){
       password,
       options:{
         data:{ username },
-        emailRedirectTo: undefined // penting -> disable magic link
+        emailRedirectTo: undefined // ⭐ disable magic link
       }
     })
 
@@ -45,11 +45,10 @@ export default function Register(){
       return
     }
 
-    toast.success("OTP dikirim 🚀")
+    toast.success("OTP dikirim ke email 🚀")
 
     router.push(`/verify?email=${email}`)
   }
-
 
   return(
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white px-6">
@@ -75,11 +74,10 @@ export default function Register(){
           onChange={(e)=>setEmail(e.target.value)}
         />
 
-        {/* PASSWORD */}
         <div className="relative mb-4">
 
           <input
-            type={show ? "text":"password"}
+            type={show?"text":"password"}
             placeholder="Password"
             className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700"
             value={password}
@@ -91,7 +89,7 @@ export default function Register(){
             onClick={()=>setShow(!show)}
             className="absolute right-3 top-3 text-gray-400"
           >
-            {show ? <EyeOff size={20}/> : <Eye size={20}/>}
+            {show?<EyeOff size={20}/>:<Eye size={20}/>}
           </button>
 
         </div>
@@ -99,9 +97,9 @@ export default function Register(){
         <button
           onClick={register}
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold"
+          className="w-full bg-indigo-600 py-3 rounded-lg font-semibold"
         >
-          {loading ? "Loading..." : "Daftar"}
+          Daftar
         </button>
 
         <p className="text-gray-400 text-sm mt-6 text-center">

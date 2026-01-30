@@ -1,28 +1,32 @@
 "use client"
+export const dynamic = "force-dynamic"
 
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
-export default function VerifyClient() {
+export default function Verify() {
 
   const router = useRouter()
   const searchParams = useSearchParams()
   const email = searchParams.get("email")
 
-  const [otp, setOtp] = useState<string[]>(Array(6).fill(""))
-  const [loading, setLoading] = useState(false)
+  const OTP_LENGTH = 6
+
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""))
   const [cooldown, setCooldown] = useState(0)
 
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
+  // protect page
   useEffect(() => {
     if (!email) router.push("/register")
   }, [email, router])
 
 
 
+  // cooldown timer
   useEffect(() => {
     if (cooldown <= 0) return
 
@@ -35,53 +39,39 @@ export default function VerifyClient() {
 
 
 
+  // 🔥 AUTO VERIFY
   useEffect(() => {
     const code = otp.join("")
-
-    if (code.length === 6 && !otp.includes("")) {
-      handleVerify(code)
-    }
+    if (code.length === OTP_LENGTH) verify(code)
   }, [otp])
 
 
 
   const handleChange = (value: string, index: number) => {
+
     if (!/^[0-9]?$/.test(value)) return
 
     const newOtp = [...otp]
     newOtp[index] = value
     setOtp(newOtp)
 
-    if (value && index < 5) {
+    if (value && index < OTP_LENGTH - 1) {
       inputs.current[index + 1]?.focus()
     }
   }
 
 
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputs.current[index - 1]?.focus()
-    }
-  }
+  const handlePaste = (e: React.ClipboardEvent) => {
 
+    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH)
 
+    if (!paste) return
 
-  const handlePaste = (
-    e: React.ClipboardEvent<HTMLDivElement>
-  ) => {
+    const arr = paste.split("")
+    setOtp(arr)
 
-    const paste = e.clipboardData.getData("text").slice(0,6)
-
-    if (!/^\d+$/.test(paste)) return
-
-    const pasteArr: string[] = paste.split("")
-    setOtp(pasteArr)
-
-    pasteArr.forEach((num: string, i: number) => {
+    arr.forEach((num, i) => {
       if (inputs.current[i]) {
         inputs.current[i]!.value = num
       }
@@ -90,9 +80,9 @@ export default function VerifyClient() {
 
 
 
-  const handleVerify = async (code: string) => {
+  const verify = async (code: string) => {
 
-    setLoading(true)
+    const load = toast.loading("Memverifikasi...")
 
     const { error } = await supabase.auth.verifyOtp({
       email: email!,
@@ -100,12 +90,11 @@ export default function VerifyClient() {
       type: "email",
     })
 
-    setLoading(false)
+    toast.dismiss(load)
 
     if (error) {
-      toast.error("Kode salah atau expired 😹")
-
-      setOtp(Array(6).fill(""))
+      toast.error("OTP salah / expired 😹")
+      setOtp(Array(OTP_LENGTH).fill(""))
       inputs.current[0]?.focus()
       return
     }
@@ -117,25 +106,25 @@ export default function VerifyClient() {
 
 
 
-  const handleResend = async () => {
+  const resend = async () => {
 
     if (cooldown > 0) return
 
-    const loadingToast = toast.loading("Mengirim OTP baru...")
+    const load = toast.loading("Mengirim OTP baru...")
 
     const { error } = await supabase.auth.resend({
       type: "signup",
       email: email!,
     })
 
-    toast.dismiss(loadingToast)
+    toast.dismiss(load)
 
     if (error) {
-      toast.error("Gagal kirim ulang 😹")
+      toast.error("Gagal kirim ulang")
       return
     }
 
-    toast.success("OTP baru dikirim!")
+    toast.success("OTP baru dikirim 🚀")
     setCooldown(60)
   }
 
@@ -157,20 +146,21 @@ export default function VerifyClient() {
         </p>
 
 
-        <div 
+        {/* OTP BOX */}
+        <div
           onPaste={handlePaste}
           className="flex justify-between gap-2 mb-6"
         >
           {otp.map((digit, index) => (
             <input
               key={index}
-              ref={(el) => {
-                inputs.current[index] = el
-              }}
+              ref={(el) => { inputs.current[index] = el }}
               maxLength={1}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
               value={digit}
               onChange={(e) => handleChange(e.target.value, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
               className="
                 w-12 h-14 text-center text-xl font-bold
                 rounded-lg bg-[#070B14]
@@ -183,15 +173,8 @@ export default function VerifyClient() {
         </div>
 
 
-        {loading && (
-          <p className="text-center text-indigo-400 mb-4">
-            Memverifikasi...
-          </p>
-        )}
-
-
         <button
-          onClick={handleResend}
+          onClick={resend}
           disabled={cooldown > 0}
           className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg font-semibold hover:bg-indigo-500/10 transition disabled:opacity-40"
         >

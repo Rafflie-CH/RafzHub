@@ -21,19 +21,15 @@ export default async function Home() {
     }
   )
 
+  // 🔥 cek user dulu (WAJIB)
   const {
     data:{ user }
   } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
-  .from("profiles")
-  .select("role, username, avatar_url")
-  .eq("id", user.id)
-  .single()
-
   if(!user) redirect("/login")
 
-  const { data:profile } = await supabase
+  // 🔥 baru ambil profile
+  const { data: profile } = await supabase
     .from("profiles")
     .select("username, avatar_url, role")
     .eq("id",user.id)
@@ -51,43 +47,13 @@ export default async function Home() {
 
         <div className="flex items-center gap-6">
 
-          <div className="flex items-center gap-6">
-
-  <nav className="flex gap-6 text-sm">
-    <a href="#features" className="hover:text-indigo-400 transition">Fitur</a>
-    <a href="#pricing" className="hover:text-indigo-400 transition">Produk</a>
-    <a href="#contact" className="hover:text-indigo-400 transition">Kontak</a>
-  </nav>
-
-  <a href="/settings" className="flex items-center gap-3">
-    <img
-      src={profile?.avatar_url || "/default-avatar.png"}
-      className="w-10 h-10 rounded-full border border-gray-700"
-    />
-
-    <div className="flex flex-col text-left">
-      <span className="text-sm font-semibold">
-        {profile?.username || "User"}
-      </span>
-
-      <span
-        className={`text-xs font-bold ${
-          profile?.role === "admin"
-            ? "text-green-400"
-            : "text-blue-400"
-        }`}
-      >
-        {profile?.role?.toUpperCase()}
-      </span>
-    </div>
-  </a>
-
-</div>
+          <nav className="flex gap-6 text-sm">
             <a href="#features" className="hover:text-indigo-400 transition">Fitur</a>
             <a href="#pricing" className="hover:text-indigo-400 transition">Produk</a>
             <a href="#contact" className="hover:text-indigo-400 transition">Kontak</a>
           </nav>
 
+          {/* 🔥 PROFILE MENU */}
           <ProfileMenu
             username={profile?.username || "User"}
             avatar={profile?.avatar_url}

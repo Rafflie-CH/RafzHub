@@ -4,6 +4,7 @@ import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function Register() {
   const router = useRouter()
@@ -18,32 +19,44 @@ export default function Register() {
     setLoading(true)
     setError("")
 
-    // ✅ VALIDASI (biar ga bocil web nya 😹)
+    // ✅ VALIDASI
     if (!username || !email || !password) {
-      setError("Semua field wajib diisi!")
+      toast.error("Semua field wajib diisi!")
       setLoading(false)
       return
     }
 
+    if (password.length < 6) {
+      toast.error("Password minimal 6 karakter!")
+      setLoading(false)
+      return
+    }
+
+    const loadingToast = toast.loading("Membuat akun...")
+
     const { error } = await supabase.auth.signUp({
-  email,
-  password,
-  options: {
-    data: {
-      username,
-    },
-  },
-})
+      email,
+      password,
+      options: {
+        data: { username },
+      },
+    })
 
     setLoading(false)
 
     if (error) {
-      setError(error.message)
+      toast.dismiss(loadingToast)
+      toast.error(error.message)
       return
     }
 
-    // 🔥 JANGAN redirect ke login!
-    router.push("/verify")
+    toast.dismiss(loadingToast)
+    toast.success("OTP berhasil dikirim 🚀")
+
+    // kasih delay dikit biar notif keliatan
+    setTimeout(() => {
+      router.push("/verify?email=" + email)
+    }, 1200)
   }
 
   return (
@@ -57,7 +70,7 @@ export default function Register() {
         {/* USERNAME */}
         <input
           placeholder="Username"
-          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700"
+          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700 outline-none focus:border-indigo-500"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
         />
@@ -66,7 +79,7 @@ export default function Register() {
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700"
+          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700 outline-none focus:border-indigo-500"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -75,23 +88,17 @@ export default function Register() {
         <input
           type="password"
           placeholder="Password"
-          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700"
+          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700 outline-none focus:border-indigo-500"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        {error && (
-          <p className="text-red-400 mb-4 text-sm">
-            {error}
-          </p>
-        )}
-
         <button
           onClick={handleRegister}
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold transition"
+          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? "Loading..." : "Daftar"}
+          {loading ? "Membuat akun..." : "Daftar"}
         </button>
 
         {/* SWITCH LOGIN */}

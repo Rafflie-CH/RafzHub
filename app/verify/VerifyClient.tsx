@@ -9,8 +9,10 @@ import { toast } from "sonner"
 export default function Verify() {
 
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const email = searchParams.get("email")
+  const params = useSearchParams()
+
+  const email = params.get("email")
+  const autoOtp = params.get("otp") // 🔥 dari email button
 
   const OTP_LENGTH = 6
 
@@ -19,83 +21,83 @@ export default function Verify() {
 
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
-  // protect page
+  // protect
   useEffect(() => {
     if (!email) router.push("/register")
-  }, [email, router])
+  }, [email])
 
 
+  // 🔥 AUTO LOGIN DARI EMAIL
+  useEffect(() => {
+    if(autoOtp && email){
+      verify(autoOtp)
+    }
+  }, [autoOtp, email])
 
-  // cooldown timer
+
+  // cooldown
   useEffect(() => {
     if (cooldown <= 0) return
-
-    const timer = setInterval(() => {
-      setCooldown((prev) => prev - 1)
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [cooldown])
+    const timer = setInterval(()=>setCooldown(p=>p-1),1000)
+    return ()=>clearInterval(timer)
+  },[cooldown])
 
 
-
-  // 🔥 AUTO VERIFY
-  useEffect(() => {
+  // auto verify kalau user ngetik
+  useEffect(()=>{
     const code = otp.join("")
-    if (code.length === OTP_LENGTH) verify(code)
-  }, [otp])
+    if(code.length === OTP_LENGTH){
+      verify(code)
+    }
+  },[otp])
 
 
 
-  const handleChange = (value: string, index: number) => {
+  const handleChange = (value:string,index:number)=>{
+    if(!/^[0-9]?$/.test(value)) return
 
-    if (!/^[0-9]?$/.test(value)) return
-
-    const newOtp = [...otp]
-    newOtp[index] = value
+    const newOtp=[...otp]
+    newOtp[index]=value
     setOtp(newOtp)
 
-    if (value && index < OTP_LENGTH - 1) {
-      inputs.current[index + 1]?.focus()
+    if(value && index<OTP_LENGTH-1){
+      inputs.current[index+1]?.focus()
     }
   }
 
 
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e:React.ClipboardEvent)=>{
+    const paste = e.clipboardData.getData("text").replace(/\D/g,"").slice(0,OTP_LENGTH)
 
-    const paste = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH)
+    if(!paste) return
 
-    if (!paste) return
-
-    const arr = paste.split("")
+    const arr=paste.split("")
     setOtp(arr)
 
-    arr.forEach((num, i) => {
-      if (inputs.current[i]) {
-        inputs.current[i]!.value = num
+    arr.forEach((num,i)=>{
+      if(inputs.current[i]){
+        inputs.current[i]!.value=num
       }
     })
   }
 
 
 
-  const verify = async (code: string) => {
+  const verify = async (code:string)=>{
 
     const load = toast.loading("Memverifikasi...")
 
     const { error } = await supabase.auth.verifyOtp({
       email: email!,
       token: code,
-      type: "email",
+      type:"email"
     })
 
     toast.dismiss(load)
 
-    if (error) {
-      toast.error("OTP salah / expired 😹")
-      setOtp(Array(OTP_LENGTH).fill(""))
-      inputs.current[0]?.focus()
+    if(error){
+      toast.error("OTP salah / expired")
       return
     }
 
@@ -106,20 +108,20 @@ export default function Verify() {
 
 
 
-  const resend = async () => {
+  const resend = async ()=>{
 
-    if (cooldown > 0) return
+    if(cooldown>0) return
 
     const load = toast.loading("Mengirim OTP baru...")
 
     const { error } = await supabase.auth.resend({
-      type: "signup",
-      email: email!,
+      type:"email",
+      email: email!
     })
 
     toast.dismiss(load)
 
-    if (error) {
+    if(error){
       toast.error("Gagal kirim ulang")
       return
     }
@@ -130,7 +132,7 @@ export default function Verify() {
 
 
 
-  return (
+  return(
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white">
 
       <div className="bg-[#0F1624] p-8 rounded-2xl w-full max-w-md border border-gray-800">
@@ -141,33 +143,22 @@ export default function Verify() {
 
         <p className="text-gray-400 text-sm mb-8 text-center">
           Kode dikirim ke:
-          <br />
+          <br/>
           <span className="text-indigo-400">{email}</span>
         </p>
 
 
-        {/* OTP BOX */}
-        <div
-          onPaste={handlePaste}
-          className="flex justify-between gap-2 mb-6"
-        >
-          {otp.map((digit, index) => (
+        <div onPaste={handlePaste} className="flex justify-between gap-2 mb-6">
+          {otp.map((digit,index)=>(
             <input
               key={index}
-              ref={(el) => { inputs.current[index] = el }}
+              ref={(el)=>{inputs.current[index]=el}}
               maxLength={1}
               inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]*"
+              autoComplete={index===0?"one-time-code":"off"}
               value={digit}
-              onChange={(e) => handleChange(e.target.value, index)}
-              className="
-                w-12 h-14 text-center text-xl font-bold
-                rounded-lg bg-[#070B14]
-                border border-gray-700
-                focus:border-indigo-500
-                focus:outline-none
-              "
+              onChange={(e)=>handleChange(e.target.value,index)}
+              className="w-12 h-14 text-center text-xl font-bold rounded-lg bg-[#070B14] border border-gray-700 focus:border-indigo-500 focus:outline-none"
             />
           ))}
         </div>
@@ -175,16 +166,13 @@ export default function Verify() {
 
         <button
           onClick={resend}
-          disabled={cooldown > 0}
+          disabled={cooldown>0}
           className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg font-semibold hover:bg-indigo-500/10 transition disabled:opacity-40"
         >
-          {cooldown > 0
-            ? `Kirim ulang dalam ${cooldown}s`
-            : "Kirim ulang OTP"}
+          {cooldown>0?`Kirim ulang dalam ${cooldown}s`:"Kirim ulang OTP"}
         </button>
 
       </div>
-
     </main>
   )
 }

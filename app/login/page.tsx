@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { toast } from "sonner"
-import Link from "next/link"
-import { Eye, EyeOff } from "lucide-react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { toast } from "sonner"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function Login(){
+
   const router = useRouter()
 
   const [email,setEmail]=useState("")
@@ -15,37 +16,33 @@ export default function Login(){
   const [show,setShow]=useState(false)
   const [loading,setLoading]=useState(false)
 
-  const login = async () => {
+  const login = async()=>{
 
-  setLoading(true)
+    setLoading(true)
 
-  const load = toast.loading("Masuk...")
+    const load = toast.loading("Masuk...")
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  })
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
 
-  if(error){
     toast.dismiss(load)
-    toast.error("Invalid login credentials 😹")
     setLoading(false)
-    return
-  }
 
-  // 🔥 PENTING BANGET
-  // tunggu session ke set di cookie
-  await supabase.auth.getSession()
+    if(error){
+      toast.error("Invalid login credentials 😹")
+      return
+    }
 
-  toast.dismiss(load)
-  toast.success("Login berhasil 🔥")
+    // ⭐ PENTING BANGET
+    await supabase.auth.getSession()
 
-  // kasih delay dikit biar middleware kebaca
-  setTimeout(()=>{
-    window.location.href = "/dashboard"
+    toast.success("Login berhasil 🔥")
+
+    router.replace("/dashboard")
     router.refresh()
-  }, 500)
-}
+  }
 
   return(
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white px-6">

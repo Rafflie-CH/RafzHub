@@ -1,6 +1,5 @@
 import { createServerClient } from "@supabase/ssr"
-import { NextResponse } from "next/server"
-import type { NextRequest } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
@@ -10,30 +9,38 @@ export async function middleware(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-  get: (key: string) => req.cookies.get(key)?.value,
-  set: (key: string, value: string, options: any) => {
-    res.cookies.set(key, value, options)
-  },
-  remove: (key: string, options: any) => {
-    res.cookies.set(key, "", options)
-  },
-},
+        get(key: string) {
+          return req.cookies.get(key)?.value
+        },
+        set(key: string, value: string, options: any) {
+          res.cookies.set(key, value, options)
+        },
+        remove(key: string, options: any) {
+          res.cookies.set(key, "", options)
+        },
+      },
     }
+  )
 
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedRoutes = ["/dashboard"]
-  const authRoutes = ["/login", "/register", "/verify"]
+  const pathname = req.nextUrl.pathname
 
-  // ❌ belum login tapi buka dashboard
-  if (!user && protectedRoutes.some(route => req.nextUrl.pathname.startsWith(route))) {
+  const isProtected = pathname.startsWith("/dashboard")
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/verify")
+
+  // ❌ belum login tapi akses dashboard
+  if (!user && isProtected) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  // ✅ sudah login tapi buka login/register
-  if (user && authRoutes.some(route => req.nextUrl.pathname.startsWith(route))) {
+  // ✅ sudah login tapi buka auth page
+  if (user && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 

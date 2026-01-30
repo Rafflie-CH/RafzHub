@@ -4,32 +4,40 @@ import { useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { toast } from "sonner"
 
 export default function Login() {
-  const router = useRouter()
 
+  const router = useRouter()
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
-    setLoading(true)
-    setError("")
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    setLoading(false)
-
-    if (error) {
-      setError(error.message)
+    if (!email) {
+      toast.error("Masukkan email!")
       return
     }
 
-    router.push("/dashboard") // nanti kita bikin
+    setLoading(true)
+
+    const load = toast.loading("Mengirim OTP...")
+
+    const { error } = await supabase.auth.signInWithOtp({
+      email
+    })
+
+    toast.dismiss(load)
+    setLoading(false)
+
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+
+    toast.success("Kode login dikirim 🔥")
+
+    router.push(`/verify?email=${email}`)
   }
 
   return (
@@ -43,34 +51,19 @@ export default function Login() {
         <input
           type="email"
           placeholder="Email"
-          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700"
+          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700 outline-none focus:border-indigo-500"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e)=>setEmail(e.target.value)}
         />
-
-        <input
-          type="password"
-          placeholder="Password"
-          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        {error && (
-          <p className="text-red-400 mb-4 text-sm">
-            {error}
-          </p>
-        )}
 
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold transition"
+          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold"
         >
-          {loading ? "Loading..." : "Login"}
+          {loading ? "Mengirim..." : "Login pakai OTP"}
         </button>
 
-        {/* SWITCH */}
         <p className="text-gray-400 text-sm mt-6 text-center">
           Belum punya akun?{" "}
           <Link href="/register" className="text-indigo-400 hover:underline">

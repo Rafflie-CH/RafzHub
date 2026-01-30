@@ -106,7 +106,10 @@ export default function Settings(){
         <div className="flex flex-col items-center gap-4 mb-10">
 
           <img
-            src={avatar || "https://i.pravatar.cc/120"}
+          src={
+            avatar ||
+            `https://ui-avatars.com/api/?name=${username || "User"}&background=6366f1&color=fff&size=256`
+            }
             className="w-28 h-28 rounded-full border border-gray-700 object-cover"
           />
 

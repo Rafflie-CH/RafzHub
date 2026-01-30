@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { toast } from "sonner"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye,EyeOff } from "lucide-react"
 
 export default function Login(){
 
@@ -16,14 +16,11 @@ export default function Login(){
   const [show,setShow]=useState(false)
   const [loading,setLoading]=useState(false)
 
-
-  const handleLogin = async()=>{
-
-    if(loading) return
+  const login=async()=>{
 
     setLoading(true)
 
-    const load=toast.loading("Masuk...")
+    const load = toast.loading("Masuk...")
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -34,15 +31,14 @@ export default function Login(){
     setLoading(false)
 
     if(error){
-      toast.error("Email atau password salah 😹")
+      toast.error("Invalid login credentials 😹")
       return
     }
 
-    toast.success("Welcome back 🔥")
+    toast.success("Login berhasil 🔥")
 
-    router.push("/dashboard")
+    router.replace("/dashboard")
   }
-
 
   return(
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white px-6">
@@ -61,12 +57,11 @@ export default function Login(){
           onChange={(e)=>setEmail(e.target.value)}
         />
 
-        <div className="relative mb-6">
-
+        <div className="relative mb-4">
           <input
             type={show?"text":"password"}
             placeholder="Password"
-            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 pr-10"
+            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700"
             value={password}
             onChange={(e)=>setPassword(e.target.value)}
           />
@@ -76,22 +71,21 @@ export default function Login(){
             onClick={()=>setShow(!show)}
             className="absolute right-3 top-3 text-gray-400"
           >
-            {show ? <EyeOff size={18}/> : <Eye size={18}/>}
+            {show?<EyeOff size={20}/>:<Eye size={20}/>}
           </button>
-
         </div>
 
         <button
-          onClick={handleLogin}
+          onClick={login}
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold disabled:opacity-40"
+          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold"
         >
-          {loading?"Loading...":"Login"}
+          Login
         </button>
 
         <p className="text-gray-400 text-sm mt-6 text-center">
           Belum punya akun?{" "}
-          <Link href="/register" className="text-indigo-400 hover:underline">
+          <Link href="/register" className="text-indigo-400">
             Ayuk daftar
           </Link>
         </p>

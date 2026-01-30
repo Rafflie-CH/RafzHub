@@ -2,21 +2,18 @@
 
 import { useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { toast } from "sonner"
-import { Eye,EyeOff } from "lucide-react"
+import Link from "next/link"
+import { Eye, EyeOff } from "lucide-react"
 
 export default function Login(){
-
-  const router = useRouter()
 
   const [email,setEmail]=useState("")
   const [password,setPassword]=useState("")
   const [show,setShow]=useState(false)
   const [loading,setLoading]=useState(false)
 
-  const login=async()=>{
+  const login = async ()=>{
 
     setLoading(true)
 
@@ -37,7 +34,12 @@ export default function Login(){
 
     toast.success("Login berhasil 🔥")
 
-    router.replace("/dashboard")
+    // ⭐⭐⭐⭐⭐ SUPER PENTING
+    // Jangan router.push
+    // HARUS hard redirect biar cookie kebaca middleware
+    setTimeout(()=>{
+      window.location.href="/dashboard"
+    },800)
   }
 
   return(

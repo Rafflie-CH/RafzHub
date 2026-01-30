@@ -42,7 +42,7 @@ export default function Login(){
 
   // kasih delay dikit biar middleware kebaca
   setTimeout(()=>{
-    router.replace("/dashboard")
+    window.location.href = "/dashboard"
     router.refresh()
   }, 500)
 }

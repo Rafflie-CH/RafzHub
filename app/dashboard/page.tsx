@@ -1,4 +1,4 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -6,16 +6,26 @@ export const dynamic = "force-dynamic"
 
 export default async function Home() {
 
-  const supabase = createServerComponentClient({
-    cookies
-  })
+  const cookieStore = cookies()
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+      },
+    }
+  )
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
   // 🔥 kalau belum login → tendang
-  if (!session) {
+  if (!user) {
     redirect("/login")
   }
 
@@ -63,7 +73,6 @@ export default async function Home() {
         id="features"
         className="px-6 py-20 max-w-6xl mx-auto grid md:grid-cols-3 gap-7"
       >
-
         {[
           {
             title: "Panel Hosting",

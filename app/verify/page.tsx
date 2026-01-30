@@ -12,11 +12,12 @@ export default function Verify() {
   const searchParams = useSearchParams()
   const email = searchParams.get("email")
 
-  const [otp, setOtp] = useState(Array(6).fill(""))
+  // ✅ TYPE FIX
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(""))
   const [loading, setLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
 
-  const inputs = useRef<HTMLInputElement[]>([])
+  const inputs = useRef<(HTMLInputElement | null)[]>([])
 
   // protect route
   useEffect(() => {
@@ -37,11 +38,11 @@ export default function Verify() {
 
 
 
-  // 🔥 AUTO VERIFY
+  // AUTO VERIFY
   useEffect(() => {
     const code = otp.join("")
 
-    if (code.length === 6) {
+    if (code.length === 6 && !otp.includes("")) {
       handleVerify(code)
     }
   }, [otp])
@@ -55,7 +56,6 @@ export default function Verify() {
     newOtp[index] = value
     setOtp(newOtp)
 
-    // lompat ke depan
     if (value && index < 5) {
       inputs.current[index + 1]?.focus()
     }
@@ -63,9 +63,11 @@ export default function Verify() {
 
 
 
-  const handleKeyDown = (e: any, index: number) => {
-
-    // balik kalau backspace
+  // ✅ TYPE FIX
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number
+  ) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputs.current[index - 1]?.focus()
     }
@@ -73,18 +75,22 @@ export default function Verify() {
 
 
 
-  // 🔥 PASTE SUPPORT
-  const handlePaste = (e: any) => {
+  // ✅ TYPE FIX
+  const handlePaste = (
+    e: React.ClipboardEvent<HTMLDivElement>
+  ) => {
+
     const paste = e.clipboardData.getData("text").slice(0,6)
 
     if (!/^\d+$/.test(paste)) return
 
-    const pasteArr = paste.split("")
+    const pasteArr: string[] = paste.split("")
+
     setOtp(pasteArr)
 
-    pasteArr.forEach((num, i) => {
+    pasteArr.forEach((num: string, i: number) => {
       if (inputs.current[i]) {
-        inputs.current[i].value = num
+        inputs.current[i]!.value = num
       }
     })
   }
@@ -118,7 +124,6 @@ export default function Verify() {
 
 
 
-  // 🔥 RESEND
   const handleResend = async () => {
 
     if (cooldown > 0) return
@@ -159,7 +164,7 @@ export default function Verify() {
         </p>
 
 
-        {/* 🔥 OTP BOX */}
+        {/* OTP BOX */}
         <div 
           onPaste={handlePaste}
           className="flex justify-between gap-2 mb-6"
@@ -167,7 +172,9 @@ export default function Verify() {
           {otp.map((digit, index) => (
             <input
               key={index}
-              ref={(el:any) => inputs.current[index] = el}
+              ref={(el) => {
+                inputs.current[index] = el
+              }}
               maxLength={1}
               value={digit}
               onChange={(e) => handleChange(e.target.value, index)}
@@ -191,7 +198,6 @@ export default function Verify() {
         )}
 
 
-        {/* 🔥 RESEND */}
         <button
           onClick={handleResend}
           disabled={cooldown > 0}

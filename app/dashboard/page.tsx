@@ -15,34 +15,50 @@ export default async function Home() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-  get(name: string) {
-    return cookieStore.get(name)?.value
-  },
-  set(name: string, value: string, options: any) {
-    cookieStore.set({ name, value, ...options })
-  },
-  remove(name: string, options: any) {
-    cookieStore.set({ name, value: "", ...options })
-  },
-}
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({
+            name,
+            value: "",
+            ...options,
+            maxAge: 0,
+          })
+        },
+      },
     }
   )
 
-  // 🔥 cek user dulu (WAJIB)
   const {
-    data:{ user }
+    data: { user },
   } = await supabase.auth.getUser()
 
-  if(!user) redirect("/login")
+  if (!user) redirect("/login")
 
-  // 🔥 baru ambil profile
   const { data: profile } = await supabase
     .from("profiles")
     .select("username, avatar_url, role")
-    .eq("id",user.id)
+    .eq("id", user.id)
     .maybeSingle()
 
-  return(
+  // 🔥 fallback pintar
+  const username =
+    profile?.username ||
+    user.user_metadata?.username ||
+    user.email?.split("@")[0] ||
+    "User"
+
+  const avatar =
+    profile?.avatar_url ||
+    `https://ui-avatars.com/api/?name=${username}&background=6366f1&color=fff`
+
+  const role = profile?.role || "member"
+
+  return (
     <main className="min-h-screen bg-[#070B14] text-white">
 
       {/* NAVBAR */}
@@ -60,11 +76,10 @@ export default async function Home() {
             <a href="#contact" className="hover:text-indigo-400 transition">Kontak</a>
           </nav>
 
-          {/* 🔥 PROFILE MENU */}
           <ProfileMenu
-            username={profile?.username || "User"}
-            avatar={profile?.avatar_url}
-            role={profile?.role}
+            username={username}
+            avatar={avatar}
+            role={role}
           />
 
         </div>
@@ -73,7 +88,7 @@ export default async function Home() {
       {/* HERO */}
       <section className="text-center py-28 px-6">
         <h2 className="text-5xl font-bold mb-6 leading-tight">
-          Platform Bot & Panel  
+          Platform Bot & Panel
           <span className="text-indigo-500"> Modern</span>
         </h2>
 
@@ -111,7 +126,7 @@ export default async function Home() {
             title: "Script Premium",
             desc: "Beli sekali, pakai selamanya. Siap deploy ke panel kamu."
           }
-        ].map((item)=>(
+        ].map((item) => (
           <div
             key={item.title}
             className="bg-[#0F1624] p-7 rounded-2xl border border-gray-800 hover:border-indigo-500 transition hover:scale-[1.02]"
@@ -160,6 +175,54 @@ export default async function Home() {
             </button>
           </div>
 
+        </div>
+      </section>
+
+      {/* 🔥 DEVELOPER SECTION (BALIKIN) */}
+      <section className="text-center py-24 border-t border-gray-800">
+        <h2 className="text-3xl font-bold mb-4">
+          Developer
+        </h2>
+
+        <p className="text-gray-400 mb-6">
+          Rafz — Founder & Developer RafzHub
+        </p>
+
+        <a
+          href="https://wa.me/6281521902652"
+          target="_blank"
+          className="inline-block bg-green-600 hover:bg-green-500 px-7 py-3 rounded-xl font-semibold transition"
+        >
+          Chat Developer
+        </a>
+      </section>
+
+      {/* 🔥 CONTACT SECTION (BALIKIN) */}
+      <section id="contact" className="text-center py-24 border-t border-gray-800">
+        <h2 className="text-3xl font-bold mb-4">
+          Butuh Bantuan?
+        </h2>
+
+        <p className="text-gray-400 mb-8">
+          Hubungi owner atau developer kapan saja.
+        </p>
+
+        <div className="flex justify-center gap-4 flex-wrap">
+          <a
+            href="https://wa.me/6285829658816"
+            target="_blank"
+            className="bg-indigo-600 hover:bg-indigo-500 px-7 py-3 rounded-xl font-semibold transition"
+          >
+            Chat Owner
+          </a>
+
+          <a
+            href="https://wa.me/6281521902652"
+            target="_blank"
+            className="border border-gray-700 hover:border-indigo-500 px-7 py-3 rounded-xl transition"
+          >
+            Chat Developer
+          </a>
         </div>
       </section>
 

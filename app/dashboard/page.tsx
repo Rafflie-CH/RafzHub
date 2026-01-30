@@ -34,7 +34,7 @@ export default async function Home() {
     .from("profiles")
     .select("username, avatar_url, role")
     .eq("id",user.id)
-    .single()
+    .maybeSingle()
 
   return(
     <main className="min-h-screen bg-[#070B14] text-white">

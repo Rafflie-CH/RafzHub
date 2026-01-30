@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function Login(){
   const router = useRouter()

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import type { CookieOptions } from "@supabase/ssr"
 
 export async function middleware(req: NextRequest) {
 
@@ -17,14 +18,16 @@ export async function middleware(req: NextRequest) {
         get(name: string) {
           return req.cookies.get(name)?.value
         },
-        set(name: string, value: string, options) {
+
+        set(name: string, value: string, options: CookieOptions) {
           response.cookies.set({
             name,
             value,
             ...options,
           })
         },
-        remove(name: string, options) {
+
+        remove(name: string, options: CookieOptions) {
           response.cookies.set({
             name,
             value: "",
@@ -35,7 +38,7 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // ⭐ WAJIB — refresh session biar ga expire random
+  // ⭐ penting → refresh session
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -49,12 +52,10 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/register") ||
     pathname.startsWith("/verify")
 
-  // ❌ belum login tapi masuk dashboard
   if (!session && isProtected) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  // ✅ sudah login tapi buka auth page
   if (session && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }

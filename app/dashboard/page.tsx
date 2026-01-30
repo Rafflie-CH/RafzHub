@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import ProfileMenu from "./ProfileMenu"
 
 export const dynamic = "force-dynamic"
 
@@ -12,37 +13,51 @@ export default async function Home() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get(name: string) {
+      cookies:{
+        get(name:string){
           return cookieStore.get(name)?.value
-        },
-      },
+        }
+      }
     }
   )
 
   const {
-    data: { user },
+    data:{ user }
   } = await supabase.auth.getUser()
 
-  // 🔥 kalau belum login → tendang
-  if (!user) {
-    redirect("/login")
-  }
+  if(!user) redirect("/login")
 
-  return (
+  const { data:profile } = await supabase
+    .from("profiles")
+    .select("username, avatar_url, role")
+    .eq("id",user.id)
+    .single()
+
+  return(
     <main className="min-h-screen bg-[#070B14] text-white">
 
       {/* NAVBAR */}
       <header className="flex items-center justify-between px-6 py-5 border-b border-gray-800">
+
         <h1 className="text-2xl font-bold tracking-tight">
           RafzHub
         </h1>
 
-        <nav className="flex gap-6 text-sm">
-          <a href="#features" className="hover:text-indigo-400 transition">Fitur</a>
-          <a href="#pricing" className="hover:text-indigo-400 transition">Produk</a>
-          <a href="#contact" className="hover:text-indigo-400 transition">Kontak</a>
-        </nav>
+        <div className="flex items-center gap-6">
+
+          <nav className="flex gap-6 text-sm">
+            <a href="#features" className="hover:text-indigo-400 transition">Fitur</a>
+            <a href="#pricing" className="hover:text-indigo-400 transition">Produk</a>
+            <a href="#contact" className="hover:text-indigo-400 transition">Kontak</a>
+          </nav>
+
+          <ProfileMenu
+            username={profile?.username || "User"}
+            avatar={profile?.avatar_url}
+            role={profile?.role}
+          />
+
+        </div>
       </header>
 
       {/* HERO */}
@@ -86,7 +101,7 @@ export default async function Home() {
             title: "Script Premium",
             desc: "Beli sekali, pakai selamanya. Siap deploy ke panel kamu."
           }
-        ].map((item) => (
+        ].map((item)=>(
           <div
             key={item.title}
             className="bg-[#0F1624] p-7 rounded-2xl border border-gray-800 hover:border-indigo-500 transition hover:scale-[1.02]"
@@ -102,7 +117,7 @@ export default async function Home() {
         ))}
       </section>
 
-      {/* PRICING / PRODUK */}
+      {/* PRICING */}
       <section id="pricing" className="py-24 border-t border-gray-800 text-center">
 
         <h2 className="text-4xl font-bold mb-14">
@@ -111,7 +126,6 @@ export default async function Home() {
 
         <div className="flex flex-wrap justify-center gap-8 px-6">
 
-          {/* PANEL */}
           <div className="bg-[#0F1624] p-8 rounded-2xl w-[300px] border border-gray-800">
             <h3 className="text-2xl font-semibold mb-3">Panel</h3>
 
@@ -124,7 +138,6 @@ export default async function Home() {
             </button>
           </div>
 
-          {/* JADIBOT */}
           <div className="bg-[#0F1624] p-8 rounded-2xl w-[300px] border border-gray-800">
             <h3 className="text-2xl font-semibold mb-3">JadiBot</h3>
 
@@ -137,54 +150,6 @@ export default async function Home() {
             </button>
           </div>
 
-        </div>
-      </section>
-
-      {/* DEVELOPER */}
-      <section className="text-center py-24 border-t border-gray-800">
-        <h2 className="text-3xl font-bold mb-4">
-          Developer
-        </h2>
-
-        <p className="text-gray-400 mb-6">
-          Rafz — Founder & Developer RafzHub
-        </p>
-
-        <a
-          href="https://wa.me/6281521902652"
-          target="_blank"
-          className="inline-block bg-green-600 hover:bg-green-500 px-7 py-3 rounded-xl font-semibold transition"
-        >
-          Chat Developer
-        </a>
-      </section>
-
-      {/* CONTACT */}
-      <section id="contact" className="text-center py-24 border-t border-gray-800">
-        <h2 className="text-3xl font-bold mb-4">
-          Butuh Bantuan?
-        </h2>
-
-        <p className="text-gray-400 mb-8">
-          Hubungi owner atau developer kapan saja.
-        </p>
-
-        <div className="flex justify-center gap-4 flex-wrap">
-          <a
-            href="https://wa.me/6285829658816"
-            target="_blank"
-            className="bg-indigo-600 hover:bg-indigo-500 px-7 py-3 rounded-xl font-semibold transition"
-          >
-            Chat Owner
-          </a>
-
-          <a
-            href="https://wa.me/6281521902652"
-            target="_blank"
-            className="border border-gray-700 hover:border-indigo-500 px-7 py-3 rounded-xl transition"
-          >
-            Chat Developer
-          </a>
         </div>
       </section>
 

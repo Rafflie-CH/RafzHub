@@ -1,5 +1,24 @@
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
 export const dynamic = "force-dynamic"
-export default function Home() {
+
+export default async function Home() {
+
+  const supabase = createServerComponentClient({
+    cookies
+  })
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // 🔥 kalau belum login → tendang
+  if (!session) {
+    redirect("/login")
+  }
+
   return (
     <main className="min-h-screen bg-[#070B14] text-white">
 
@@ -166,5 +185,5 @@ export default function Home() {
       </footer>
 
     </main>
-  );
-          }
+  )
+}

@@ -115,9 +115,9 @@ export default function Verify() {
     const load = toast.loading("Mengirim OTP baru...")
 
     const { error } = await supabase.auth.resend({
-      type:"email",
-      email: email!
-    })
+  type:"signup",
+  email: email!
+})
 
     toast.dismiss(load)
 

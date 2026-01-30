@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Eye, EyeOff } from "lucide-react"
 
 export default function Login(){
+  const router = useRouter()
 
   const [email,setEmail]=useState("")
   const [password,setPassword]=useState("")

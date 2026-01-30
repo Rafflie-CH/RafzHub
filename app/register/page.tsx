@@ -16,36 +16,35 @@ export default function Register() {
   const [error, setError] = useState("")
 
   const handleRegister = async () => {
-  setLoading(true)
-  setError("")
 
   if (!username || !email || !password) {
-    toast.error("Semua field wajib diisi!")
-    setLoading(false)
+    toast.error("Isi semua field!")
     return
   }
 
-  const loadingToast = toast.loading("Mengirim kode OTP...")
+  if (loading) return
+  setLoading(true)
+
+  const load = toast.loading("Mengirim OTP...")
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: {
-      data: {
-        username,
-      },
-    },
+    options:{
+      shouldCreateUser:true,
+      data:{ username }
+    }
   })
 
-  toast.dismiss(loadingToast)
+  toast.dismiss(load)
   setLoading(false)
 
-  if (error) {
+  if(error){
     toast.error(error.message)
     return
   }
 
-  toast.success("Kode OTP dikirim ke email!")
-  
+  toast.success("OTP dikirim 🚀")
+
   router.push(`/verify?email=${email}`)
 }
 

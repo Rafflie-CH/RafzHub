@@ -26,16 +26,14 @@ export default function Register() {
     }
 
     const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo:
-          "https://ideal-space-zebra-4jw6rj77xrv7h5gwr-3000.app.github.dev/auth/callback",
-        data: {
-          username: username,
-        },
-      },
-    })
+  email,
+  password,
+  options: {
+    data: {
+      username,
+    },
+  },
+})
 
     setLoading(false)
 

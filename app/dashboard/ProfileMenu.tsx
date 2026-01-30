@@ -36,7 +36,7 @@ export default function ProfileMenu({
 
       <img
         onClick={()=>setOpen(!open)}
-        src={avatar || "https://i.pravatar.cc/40"}
+        src={avatar||`https://ui-avatars.com/api/?name=${username || "User"}&background=6366f1&color=fff&size=256`}
         className="w-10 h-10 rounded-full cursor-pointer border border-gray-700"
       />
 

@@ -31,13 +31,12 @@ export default function Register(){
 
     const load=toast.loading("Membuat akun...")
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options:{
-        data:{username}
-      }
-    })
+    const { error } = await supabase.auth.signInWithOtp({
+  email,
+  options: {
+    shouldCreateUser: true
+  }
+})
 
     toast.dismiss(load)
     setLoading(false)

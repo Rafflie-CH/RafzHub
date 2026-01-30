@@ -16,48 +16,38 @@ export default function Register() {
   const [error, setError] = useState("")
 
   const handleRegister = async () => {
-    setLoading(true)
-    setError("")
+  setLoading(true)
+  setError("")
 
-    // ✅ VALIDASI
-    if (!username || !email || !password) {
-      toast.error("Semua field wajib diisi!")
-      setLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      toast.error("Password minimal 6 karakter!")
-      setLoading(false)
-      return
-    }
-
-    const loadingToast = toast.loading("Membuat akun...")
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username },
-      },
-    })
-
+  if (!username || !email || !password) {
+    toast.error("Semua field wajib diisi!")
     setLoading(false)
-
-    if (error) {
-      toast.dismiss(loadingToast)
-      toast.error(error.message)
-      return
-    }
-
-    toast.dismiss(loadingToast)
-    toast.success("OTP berhasil dikirim 🚀")
-
-    // kasih delay dikit biar notif keliatan
-    setTimeout(() => {
-      router.push("/verify?email=" + email)
-    }, 1200)
+    return
   }
+
+  const loadingToast = toast.loading("Mengirim kode OTP...")
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      data: {
+        username,
+      },
+    },
+  })
+
+  toast.dismiss(loadingToast)
+  setLoading(false)
+
+  if (error) {
+    toast.error(error.message)
+    return
+  }
+
+  toast.success("Kode OTP dikirim ke email!")
+  
+  router.push(`/verify?email=${email}`)
+}
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white px-6">

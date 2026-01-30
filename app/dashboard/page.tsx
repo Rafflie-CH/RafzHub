@@ -25,6 +25,12 @@ export default async function Home() {
     data:{ user }
   } = await supabase.auth.getUser()
 
+  const { data: profile } = await supabase
+  .from("profiles")
+  .select("role, username, avatar_url")
+  .eq("id", user.id)
+  .single()
+
   if(!user) redirect("/login")
 
   const { data:profile } = await supabase

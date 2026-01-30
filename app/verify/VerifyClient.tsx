@@ -12,116 +12,142 @@ export default function Verify() {
   const params = useSearchParams()
 
   const email = params.get("email")
-  const autoOtp = params.get("otp") // 🔥 dari email button
+  const autoOtp = params.get("otp")
 
   const OTP_LENGTH = 6
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""))
   const [cooldown, setCooldown] = useState(0)
+  const [verifying, setVerifying] = useState(false)
 
   const inputs = useRef<(HTMLInputElement | null)[]>([])
 
-  // protect
+  // ✅ protect page
   useEffect(() => {
     if (!email) router.push("/register")
-  }, [email])
+  }, [email, router])
 
 
-  // 🔥 AUTO LOGIN DARI EMAIL
+
+  // ✅ AUTO LOGIN dari tombol email
   useEffect(() => {
-    if(autoOtp && email){
+    if (autoOtp && email && !verifying) {
       verify(autoOtp)
     }
   }, [autoOtp, email])
 
 
-  // cooldown
+
+  // ✅ cooldown resend
   useEffect(() => {
     if (cooldown <= 0) return
-    const timer = setInterval(()=>setCooldown(p=>p-1),1000)
-    return ()=>clearInterval(timer)
-  },[cooldown])
+
+    const timer = setInterval(() => {
+      setCooldown((p) => p - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [cooldown])
 
 
-  // auto verify kalau user ngetik
-  useEffect(()=>{
+
+  // ✅ auto verify saat user isi
+  useEffect(() => {
     const code = otp.join("")
-    if(code.length === OTP_LENGTH){
+
+    if (code.length === OTP_LENGTH && !verifying) {
       verify(code)
     }
-  },[otp])
+  }, [otp])
 
 
 
-  const handleChange = (value:string,index:number)=>{
-    if(!/^[0-9]?$/.test(value)) return
+  const handleChange = (value: string, index: number) => {
 
-    const newOtp=[...otp]
-    newOtp[index]=value
+    if (!/^[0-9]?$/.test(value)) return
+
+    const newOtp = [...otp]
+    newOtp[index] = value
     setOtp(newOtp)
 
-    if(value && index<OTP_LENGTH-1){
-      inputs.current[index+1]?.focus()
+    if (value && index < OTP_LENGTH - 1) {
+      inputs.current[index + 1]?.focus()
     }
   }
 
 
 
-  const handlePaste = (e:React.ClipboardEvent)=>{
-    const paste = e.clipboardData.getData("text").replace(/\D/g,"").slice(0,OTP_LENGTH)
+  const handlePaste = (e: React.ClipboardEvent) => {
 
-    if(!paste) return
+    const paste = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH)
 
-    const arr=paste.split("")
+    if (!paste) return
+
+    const arr = paste.split("")
     setOtp(arr)
 
-    arr.forEach((num,i)=>{
-      if(inputs.current[i]){
-        inputs.current[i]!.value=num
+    arr.forEach((num, i) => {
+      if (inputs.current[i]) {
+        inputs.current[i]!.value = num
       }
     })
   }
 
 
 
-  const verify = async (code:string)=>{
+  // ⭐⭐⭐ BAGIAN PALING PENTING
+  const verify = async (code: string) => {
+
+    if (verifying) return
+    setVerifying(true)
 
     const load = toast.loading("Memverifikasi...")
 
     const { error } = await supabase.auth.verifyOtp({
       email: email!,
       token: code,
-      type:"email"
+      type: "signup" // 🔥 WAJIB signup, bukan "email"
     })
 
     toast.dismiss(load)
 
-    if(error){
-      toast.error("OTP salah / expired")
+    if (error) {
+      toast.error("OTP salah / expired 😹")
+
+      setOtp(Array(OTP_LENGTH).fill(""))
+      inputs.current[0]?.focus()
+
+      setVerifying(false)
       return
     }
 
     toast.success("Welcome to RafzHub 🔥")
 
-    router.push("/dashboard")
+    // 🔥 tunggu session kebentuk dulu
+    setTimeout(() => {
+      router.replace("/dashboard")
+    }, 1200)
   }
 
 
 
-  const resend = async ()=>{
+  const resend = async () => {
 
-    if(cooldown>0) return
+    if (cooldown > 0) return
 
     const load = toast.loading("Mengirim OTP baru...")
 
     const { error } = await supabase.auth.resend({
-  type:"signup",
-  email: email!
-})
+      type: "signup",
+      email: email!
+    })
 
     toast.dismiss(load)
 
-    if(error){
+    if (error) {
       toast.error("Gagal kirim ulang")
       return
     }
@@ -132,7 +158,7 @@ export default function Verify() {
 
 
 
-  return(
+  return (
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white">
 
       <div className="bg-[#0F1624] p-8 rounded-2xl w-full max-w-md border border-gray-800">
@@ -143,21 +169,21 @@ export default function Verify() {
 
         <p className="text-gray-400 text-sm mb-8 text-center">
           Kode dikirim ke:
-          <br/>
+          <br />
           <span className="text-indigo-400">{email}</span>
         </p>
 
 
         <div onPaste={handlePaste} className="flex justify-between gap-2 mb-6">
-          {otp.map((digit,index)=>(
+          {otp.map((digit, index) => (
             <input
               key={index}
-              ref={(el)=>{inputs.current[index]=el}}
+              ref={(el) => { inputs.current[index] = el }}
               maxLength={1}
               inputMode="numeric"
-              autoComplete={index===0?"one-time-code":"off"}
+              autoComplete={index === 0 ? "one-time-code" : "off"}
               value={digit}
-              onChange={(e)=>handleChange(e.target.value,index)}
+              onChange={(e) => handleChange(e.target.value, index)}
               className="w-12 h-14 text-center text-xl font-bold rounded-lg bg-[#070B14] border border-gray-700 focus:border-indigo-500 focus:outline-none"
             />
           ))}
@@ -166,10 +192,12 @@ export default function Verify() {
 
         <button
           onClick={resend}
-          disabled={cooldown>0}
+          disabled={cooldown > 0}
           className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg font-semibold hover:bg-indigo-500/10 transition disabled:opacity-40"
         >
-          {cooldown>0?`Kirim ulang dalam ${cooldown}s`:"Kirim ulang OTP"}
+          {cooldown > 0
+            ? `Kirim ulang dalam ${cooldown}s`
+            : "Kirim ulang OTP"}
         </button>
 
       </div>

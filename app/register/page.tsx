@@ -11,32 +11,31 @@ export default function Register(){
 
   const router = useRouter()
 
-  const [username,setUsername]=useState("")
-  const [email,setEmail]=useState("")
-  const [password,setPassword]=useState("")
-  const [show,setShow]=useState(false)
-  const [loading,setLoading]=useState(false)
+  const [username,setUsername] = useState("")
+  const [email,setEmail] = useState("")
+  const [password,setPassword] = useState("")
+  const [show,setShow] = useState(false)
+  const [loading,setLoading] = useState(false)
 
-
-  const handleRegister = async()=>{
-
-    if(loading) return
+  const register = async()=>{
 
     if(!username || !email || !password){
-      toast.error("Isi semua field 😹")
+      toast.error("Isi semua field banh 😹")
       return
     }
 
     setLoading(true)
 
-    const load=toast.loading("Membuat akun...")
+    const load = toast.loading("Membuat akun...")
 
-    const { error } = await supabase.auth.signInWithOtp({
-  email,
-  options: {
-    shouldCreateUser: true
-  }
-})
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options:{
+        data:{ username },
+        emailRedirectTo: undefined // penting -> disable magic link
+      }
+    })
 
     toast.dismiss(load)
     setLoading(false)
@@ -76,14 +75,13 @@ export default function Register(){
           onChange={(e)=>setEmail(e.target.value)}
         />
 
-
-        {/* PASSWORD + SHOW */}
-        <div className="relative mb-6">
+        {/* PASSWORD */}
+        <div className="relative mb-4">
 
           <input
-            type={show?"text":"password"}
+            type={show ? "text":"password"}
             placeholder="Password"
-            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 pr-10"
+            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700"
             value={password}
             onChange={(e)=>setPassword(e.target.value)}
           />
@@ -93,24 +91,22 @@ export default function Register(){
             onClick={()=>setShow(!show)}
             className="absolute right-3 top-3 text-gray-400"
           >
-            {show ? <EyeOff size={18}/> : <Eye size={18}/>}
+            {show ? <EyeOff size={20}/> : <Eye size={20}/>}
           </button>
 
         </div>
 
-
         <button
-          onClick={handleRegister}
+          onClick={register}
           disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold disabled:opacity-40"
+          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold"
         >
-          {loading?"Loading...":"Daftar"}
+          {loading ? "Loading..." : "Daftar"}
         </button>
-
 
         <p className="text-gray-400 text-sm mt-6 text-center">
           Udah ada akun?{" "}
-          <Link href="/login" className="text-indigo-400 hover:underline">
+          <Link href="/login" className="text-indigo-400">
             Ayuk login
           </Link>
         </p>

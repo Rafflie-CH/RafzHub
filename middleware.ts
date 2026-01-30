@@ -1,14 +1,9 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
-import type { CookieOptions } from "@supabase/ssr"
 
 export async function middleware(req: NextRequest) {
 
-  let response = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
-  })
+  let response = NextResponse.next()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,16 +13,14 @@ export async function middleware(req: NextRequest) {
         get(name: string) {
           return req.cookies.get(name)?.value
         },
-
-        set(name: string, value: string, options: CookieOptions) {
+        set(name: string, value: string, options: any) {
           response.cookies.set({
             name,
             value,
             ...options,
           })
         },
-
-        remove(name: string, options: CookieOptions) {
+        remove(name: string, options: any) {
           response.cookies.set({
             name,
             value: "",
@@ -38,7 +31,7 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // ⭐ penting → refresh session
+  // ⭐⭐⭐ INI KUNCINYA — PAKE SESSION
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -46,16 +39,17 @@ export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname
 
   const isProtected = pathname.startsWith("/dashboard")
-
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/verify")
 
+  // ❌ belum login tapi masuk dashboard
   if (!session && isProtected) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
+  // ✅ udah login tapi buka login/register
   if (session && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
@@ -64,10 +58,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/login",
-    "/register",
-    "/verify",
-  ],
+  matcher: ["/dashboard/:path*", "/login", "/register", "/verify"],
 }

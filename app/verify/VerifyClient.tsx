@@ -106,11 +106,11 @@ export default function Verify() {
 
     const load = toast.loading("Memverifikasi...")
 
-    const { error } = await supabase.auth.verifyOtp({
-      email: email!,
-      token: code,
-      type: "signup" // 🔥 WAJIB signup, bukan "email"
-    })
+    const { error } = const { error } = await supabase.auth.verifyOtp({
+  email,
+  token: code,
+  type: "email"
+})
 
     toast.dismiss(load)
 

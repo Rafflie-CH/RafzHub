@@ -36,6 +36,7 @@ export default function Login(){
   }
 
   toast.success("Login berhasil 🔥")
+    await supabase.auth.refreshSession()
 
   router.replace("/dashboard")
 

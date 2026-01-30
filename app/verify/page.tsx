@@ -1,45 +1,147 @@
 "use client"
+export const dynamic = "force-dynamic"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 
 export default function Verify() {
+
   const router = useRouter()
   const searchParams = useSearchParams()
-
   const email = searchParams.get("email")
 
-  const [otp, setOtp] = useState("")
+  const [otp, setOtp] = useState(Array(6).fill(""))
   const [loading, setLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
 
-  const handleVerify = async () => {
-    if (!otp) {
-      toast.error("Masukkan kode OTP!")
-      return
+  const inputs = useRef<HTMLInputElement[]>([])
+
+  // protect route
+  useEffect(() => {
+    if (!email) router.push("/register")
+  }, [email, router])
+
+
+  // cooldown timer
+  useEffect(() => {
+    if (cooldown <= 0) return
+
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+
+
+  // 🔥 AUTO VERIFY
+  useEffect(() => {
+    const code = otp.join("")
+
+    if (code.length === 6) {
+      handleVerify(code)
     }
+  }, [otp])
+
+
+
+  const handleChange = (value: string, index: number) => {
+    if (!/^[0-9]?$/.test(value)) return
+
+    const newOtp = [...otp]
+    newOtp[index] = value
+    setOtp(newOtp)
+
+    // lompat ke depan
+    if (value && index < 5) {
+      inputs.current[index + 1]?.focus()
+    }
+  }
+
+
+
+  const handleKeyDown = (e: any, index: number) => {
+
+    // balik kalau backspace
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputs.current[index - 1]?.focus()
+    }
+  }
+
+
+
+  // 🔥 PASTE SUPPORT
+  const handlePaste = (e: any) => {
+    const paste = e.clipboardData.getData("text").slice(0,6)
+
+    if (!/^\d+$/.test(paste)) return
+
+    const pasteArr = paste.split("")
+    setOtp(pasteArr)
+
+    pasteArr.forEach((num, i) => {
+      if (inputs.current[i]) {
+        inputs.current[i].value = num
+      }
+    })
+  }
+
+
+
+  const handleVerify = async (code: string) => {
 
     setLoading(true)
 
     const { error } = await supabase.auth.verifyOtp({
       email: email!,
-      token: otp,
+      token: code,
       type: "email",
     })
 
     setLoading(false)
 
     if (error) {
-      toast.error("Kode salah atau expired!")
+      toast.error("Kode salah atau expired")
+
+      setOtp(Array(6).fill(""))
+      inputs.current[0]?.focus()
       return
     }
 
-    toast.success("Login berhasil!")
+    toast.success("Welcome to RafzHub 🔥")
 
-    // 🔥 langsung masuk dashboard
     router.push("/dashboard")
   }
+
+
+
+  // 🔥 RESEND
+  const handleResend = async () => {
+
+    if (cooldown > 0) return
+
+    const loadingToast = toast.loading("Mengirim OTP baru...")
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email!,
+    })
+
+    toast.dismiss(loadingToast)
+
+    if (error) {
+      toast.error("Gagal kirim ulang")
+      return
+    }
+
+    toast.success("OTP baru dikirim!")
+    setCooldown(60)
+  }
+
+
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white">
@@ -50,25 +152,54 @@ export default function Verify() {
           Verifikasi OTP
         </h1>
 
-        <p className="text-gray-400 text-sm mb-6 text-center">
-          Masukkan kode yang dikirim ke:
+        <p className="text-gray-400 text-sm mb-8 text-center">
+          Kode dikirim ke:
           <br />
           <span className="text-indigo-400">{email}</span>
         </p>
 
-        <input
-          placeholder="6 digit kode"
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          className="w-full p-3 mb-4 rounded-lg bg-[#070B14] border border-gray-700 text-center tracking-[6px]"
-        />
 
-        <button
-          onClick={handleVerify}
-          disabled={loading}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-lg font-semibold"
+        {/* 🔥 OTP BOX */}
+        <div 
+          onPaste={handlePaste}
+          className="flex justify-between gap-2 mb-6"
         >
-          {loading ? "Memverifikasi..." : "Verifikasi"}
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el:any) => inputs.current[index] = el}
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(e.target.value, index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              className="
+                w-12 h-14 text-center text-xl font-bold
+                rounded-lg bg-[#070B14]
+                border border-gray-700
+                focus:border-indigo-500
+                focus:outline-none
+              "
+            />
+          ))}
+        </div>
+
+
+        {loading && (
+          <p className="text-center text-indigo-400 mb-4">
+            Memverifikasi...
+          </p>
+        )}
+
+
+        {/* 🔥 RESEND */}
+        <button
+          onClick={handleResend}
+          disabled={cooldown > 0}
+          className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg font-semibold hover:bg-indigo-500/10 transition disabled:opacity-40"
+        >
+          {cooldown > 0
+            ? `Kirim ulang dalam ${cooldown}s`
+            : "Kirim ulang OTP"}
         </button>
 
       </div>

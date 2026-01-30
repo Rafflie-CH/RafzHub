@@ -1,23 +1,20 @@
 "use client"
 
-export const dynamic = "force-dynamic"
+import { useRouter } from "next/navigation"
 
-import { useSearchParams, useRouter } from "next/navigation"
-import { useEffect } from "react"
-
-export default function VerifyPage() {
-  const params = useSearchParams()
+export default function VerifyPage({
+  searchParams,
+}: {
+  searchParams: { email?: string }
+}) {
   const router = useRouter()
 
-  const email = params.get("email")
+  const email = searchParams?.email
 
-  useEffect(() => {
-    if (!email) {
-      router.push("/register")
-    }
-  }, [email, router])
-
-  if (!email) return null
+  if (!email) {
+    router.push("/register")
+    return null
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white">

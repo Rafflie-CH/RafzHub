@@ -16,33 +16,32 @@ export default function Login(){
   const [show,setShow]=useState(false)
   const [loading,setLoading]=useState(false)
 
-  const login = async()=>{
+  const login = async () => {
 
-    setLoading(true)
+  setLoading(true)
 
-    const load = toast.loading("Masuk...")
+  const load = toast.loading("Masuk...")
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  })
 
-    toast.dismiss(load)
-    setLoading(false)
+  toast.dismiss(load)
+  setLoading(false)
 
-    if(error){
-      toast.error("Invalid login credentials 😹")
-      return
-    }
-
-    // ⭐ PENTING BANGET
-    await supabase.auth.getSession()
-
-    toast.success("Login berhasil 🔥")
-
-    router.replace("/dashboard")
-    router.refresh()
+  if(error){
+    toast.error("Invalid login credentials 😹")
+    return
   }
+
+  toast.success("Login berhasil 🔥")
+
+  router.replace("/dashboard")
+
+  // 🔥 penting — paksa next reload session
+  router.refresh()
+}
 
   return(
     <main className="min-h-screen flex items-center justify-center bg-[#070B14] text-white px-6">

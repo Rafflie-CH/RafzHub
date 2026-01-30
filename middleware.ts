@@ -2,51 +2,71 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(key: string) {
-          return req.cookies.get(key)?.value
+        get(name: string) {
+          return req.cookies.get(name)?.value
         },
-        set(key: string, value: string, options: any) {
-          res.cookies.set(key, value, options)
+        set(name: string, value: string, options) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
         },
-        remove(key: string, options: any) {
-          res.cookies.set(key, "", options)
+        remove(name: string, options) {
+          response.cookies.set({
+            name,
+            value: "",
+            ...options,
+          })
         },
       },
     }
   )
 
+  // ⭐ WAJIB — refresh session biar ga expire random
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
   const pathname = req.nextUrl.pathname
 
   const isProtected = pathname.startsWith("/dashboard")
+
   const isAuthPage =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/verify")
 
-  // ❌ belum login tapi akses dashboard
-  if (!user && isProtected) {
+  // ❌ belum login tapi masuk dashboard
+  if (!session && isProtected) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
   // ✅ sudah login tapi buka auth page
-  if (user && isAuthPage) {
+  if (session && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url))
   }
 
-  return res
+  return response
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register", "/verify"],
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/register",
+    "/verify",
+  ],
 }

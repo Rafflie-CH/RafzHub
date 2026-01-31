@@ -25,7 +25,7 @@ export default function Settings(){
   const lastPos = useRef({ x:0, y:0 })
   const imgRef = useRef(null)
 
-  // 🔥 ambil profile
+  // 🔥 AMBIL / BUAT PROFILE (FIX UTAMA)
   useEffect(()=>{
     getProfile()
   },[])
@@ -38,24 +38,39 @@ export default function Settings(){
       return
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
-      .select("username,avatar_url")
-      .eq("id",user.id)
+      .select("username, avatar_url")
+      .eq("id", user.id)
       .single()
 
-    if(data){
-      setUsername(
-        data.username ||
+    // 🔥 kalau BELUM ADA → BUAT
+    if(!data || error){
+      const defaultUsername =
         user.user_metadata?.username ||
         user.email?.split("@")[0] ||
-        ""
-      )
-      setAvatar(data.avatar_url || "")
+        "User"
+
+      await supabase
+        .from("profiles")
+        .upsert({
+          id: user.id,
+          email: user.email,
+          username: defaultUsername,
+          avatar_url: null
+        })
+
+      setUsername(defaultUsername)
+      setAvatar("")
+      return
     }
+
+    // 🔥 kalau ADA
+    setUsername(data.username || user.email.split("@")[0])
+    setAvatar(data.avatar_url || "")
   }
 
-  // 🔥 open crop
+  // 🔥 OPEN CROP
   const openCrop = (file)=>{
     if(!file.type.startsWith("image/")){
       toast.error("File harus gambar 😹")
@@ -68,7 +83,7 @@ export default function Settings(){
     setCropOpen(true)
   }
 
-  // 🔥 apply crop + resize (FIXED)
+  // 🔥 APPLY CROP + RESIZE
   const applyCrop = async()=>{
     try{
       setUploading(true)
@@ -82,13 +97,12 @@ export default function Settings(){
       const ctx = canvas.getContext("2d")
 
       const scale = img.naturalWidth / img.clientWidth
-
       const cropSize = img.clientWidth / zoom
+
       let sx = (-pos.x + img.clientWidth/2 - cropSize/2) * scale
       let sy = (-pos.y + img.clientHeight/2 - cropSize/2) * scale
       let sSize = cropSize * scale
 
-      // clamp biar ga keluar gambar
       sx = Math.max(0, Math.min(sx, img.naturalWidth - sSize))
       sy = Math.max(0, Math.min(sy, img.naturalHeight - sSize))
 
@@ -137,7 +151,7 @@ export default function Settings(){
     }
   }
 
-  // drag handlers
+  // DRAG HANDLER
   const onDown = (e)=>{
     dragging.current = true
     lastPos.current = { x:e.clientX, y:e.clientY }
@@ -167,7 +181,7 @@ export default function Settings(){
         username,
         avatar_url: avatar
       })
-      .eq("id",user?.id)
+      .eq("id", user.id)
 
     toast.dismiss(load)
     setLoading(false)
@@ -211,7 +225,6 @@ export default function Settings(){
 
         {/* AVATAR */}
         <div className="flex flex-col items-center gap-4 mb-10">
-
           <img
             src={
               avatar?.startsWith("http")
@@ -226,8 +239,7 @@ export default function Settings(){
           />
 
           <label className="w-full">
-            <div className="flex justify-center py-3 border border-gray-700
-                            rounded-lg cursor-pointer hover:border-indigo-500">
+            <div className="flex justify-center py-3 border border-gray-700 rounded-lg cursor-pointer hover:border-indigo-500">
               📤 Upload Foto
             </div>
             <input
@@ -306,8 +318,7 @@ export default function Settings(){
 
           <div
             onMouseDown={onDown}
-            className="relative w-64 h-64 mx-auto overflow-hidden
-                       rounded-full border cursor-grab active:cursor-grabbing"
+            className="relative w-64 h-64 mx-auto overflow-hidden rounded-full border cursor-grab active:cursor-grabbing"
           >
             <img
               ref={imgRef}

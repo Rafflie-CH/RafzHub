@@ -43,8 +43,8 @@ export default function Settings() {
     setAvatar(data?.avatar_url || "")
   }
 
-  // 🔥 UPLOAD AVATAR FILE
-  const uploadAvatar = async (file: File) => {
+  // 🔥 UPLOAD AVATAR FILE (JSX VERSION)
+  const uploadAvatar = async (file) => {
     setUploading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -126,13 +126,10 @@ export default function Settings() {
     <main className="min-h-screen bg-[#070B14] text-white flex justify-center py-20 px-6">
       <div className="w-full max-w-xl bg-[#0F1624] p-8 rounded-2xl border border-gray-800">
 
-        <h1 className="text-3xl font-bold mb-8">
-          ⚙️ Settings
-        </h1>
+        <h1 className="text-3xl font-bold mb-8">⚙️ Settings</h1>
 
         {/* AVATAR */}
         <div className="flex flex-col items-center gap-4 mb-10">
-
           <img
             src={
               avatar ||
@@ -165,18 +162,13 @@ export default function Settings() {
           />
 
           {uploading && (
-            <p className="text-sm text-gray-400">
-              Uploading...
-            </p>
+            <p className="text-sm text-gray-400">Uploading...</p>
           )}
         </div>
 
         {/* USERNAME */}
         <div className="mb-6">
-          <label className="text-sm text-gray-400">
-            Username
-          </label>
-
+          <label className="text-sm text-gray-400">Username</label>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -194,10 +186,7 @@ export default function Settings() {
 
         {/* PASSWORD */}
         <div className="border-t border-gray-800 pt-8">
-          <label className="text-sm text-gray-400">
-            New Password
-          </label>
-
+          <label className="text-sm text-gray-400">New Password</label>
           <input
             type="password"
             placeholder="Minimal 6 karakter"

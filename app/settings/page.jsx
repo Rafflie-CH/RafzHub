@@ -27,7 +27,7 @@ export default function Settings(){
   const imgRef = useRef(null)
 
   // =============================
-  // 🔥 AVATAR URL (FINAL)
+  // 🔥 AVATAR URL
   // =============================
   const getAvatarUrl = ()=>{
     if(!avatar){
@@ -39,7 +39,9 @@ export default function Settings(){
   // =============================
   // 🔥 PROFILE
   // =============================
-  useEffect(()=>{ getProfile() },[])
+  useEffect(()=>{
+    getProfile()
+  },[])
 
   const getProfile = async()=>{
     const { data:{ user } } = await supabase.auth.getUser()
@@ -55,19 +57,24 @@ export default function Settings(){
       .single()
 
     if(!data){
-      const uname = user.email.split("@")[0]
+      const uname =
+        user.user_metadata?.username ||
+        user.email.split("@")[0]
+
       await supabase.from("profiles").insert({
         id:user.id,
         email:user.email,
         username:uname,
         avatar_url:null
       })
+
       setUsername(uname)
       setAvatar("")
       return
     }
 
-    setUsername(data.username)
+    // ⚠️ JANGAN override state yg sudah diubah user
+    setUsername(prev => prev || data.username)
     setAvatar(data.avatar_url || "")
   }
 
@@ -119,13 +126,15 @@ export default function Settings(){
       const { data:{ user } } = await supabase.auth.getUser()
       const fileName = `${user.id}.jpg`
 
-      await supabase.storage.from("avatars").upload(
-        fileName,
-        blob,
-        { upsert:true, contentType:"image/jpeg" }
-      )
+      await supabase.storage
+        .from("avatars")
+        .upload(fileName, blob, {
+          upsert:true,
+          contentType:"image/jpeg"
+        })
 
-      await supabase.from("profiles")
+      await supabase
+        .from("profiles")
         .update({ avatar_url:fileName })
         .eq("id",user.id)
 
@@ -147,8 +156,12 @@ export default function Settings(){
     const { data:{ user } } = await supabase.auth.getUser()
     if(!user) return
 
-    await supabase.storage.from("avatars").remove([`${user.id}.jpg`])
-    await supabase.from("profiles")
+    await supabase.storage
+      .from("avatars")
+      .remove([`${user.id}.jpg`])
+
+    await supabase
+      .from("profiles")
       .update({ avatar_url:null })
       .eq("id",user.id)
 
@@ -159,22 +172,35 @@ export default function Settings(){
   // =============================
   // 🔥 DRAG
   // =============================
-  const startDrag=(x,y)=>{ dragging.current=true; lastPos.current={x,y} }
-  const moveDrag=(x,y)=>{
-    if(!dragging.current) return
-    setPos(p=>({x:p.x+(x-lastPos.current.x),y:p.y+(y-lastPos.current.y)}))
+  const startDrag=(x,y)=>{
+    dragging.current=true
     lastPos.current={x,y}
   }
+
+  const moveDrag=(x,y)=>{
+    if(!dragging.current) return
+    setPos(p=>({
+      x:p.x+(x-lastPos.current.x),
+      y:p.y+(y-lastPos.current.y)
+    }))
+    lastPos.current={x,y}
+  }
+
   const stopDrag=()=>dragging.current=false
 
   // =============================
-  // 🔥 UPDATE PROFILE (FINAL FIX)
+  // 🔥 UPDATE PROFILE (FIX BENERAN)
   // =============================
   const updateProfile = async()=>{
     setLoading(true)
     const load = toast.loading("Updating profile...")
 
     const { data:{ user } } = await supabase.auth.getUser()
+    if(!user){
+      toast.dismiss(load)
+      setLoading(false)
+      return
+    }
 
     const { error } = await supabase
       .from("profiles")
@@ -193,13 +219,15 @@ export default function Settings(){
       data:{ username }
     })
 
+    setUsername(username) // 🔥 pastikan state ke-lock
+
     toast.dismiss(load)
     setLoading(false)
     toast.success("Profile updated 🔥")
   }
 
   // =============================
-  // 🔥 PASSWORD
+  // 🔥 CHANGE PASSWORD
   // =============================
   const changePassword = async()=>{
     if(password.length < 6){
@@ -218,52 +246,78 @@ export default function Settings(){
 
         <h1 className="text-3xl font-bold mb-8">⚙️ Settings</h1>
 
+        {/* AVATAR */}
         <div className="flex flex-col items-center gap-4 mb-10">
-          <img src={getAvatarUrl()}
+          <img
+            src={getAvatarUrl()}
             onClick={()=>setPreviewOpen(true)}
-            className="w-28 h-28 rounded-full object-cover border cursor-pointer"/>
+            className="w-28 h-28 rounded-full object-cover border border-gray-700 cursor-pointer"
+          />
 
           <label className="w-full">
-            <div className="flex justify-center py-3 border rounded-lg cursor-pointer">
+            <div className="flex justify-center py-3 border border-gray-700 rounded-lg cursor-pointer hover:border-indigo-500">
               📤 Upload Foto
             </div>
-            <input type="file" hidden accept="image/*"
+            <input type="file" accept="image/*" hidden
               onChange={e=>e.target.files?.[0] && openCrop(e.target.files[0])}/>
           </label>
 
-          {avatar && <button onClick={deleteAvatar} className="text-red-400">🗑 Hapus foto</button>}
+          {avatar && (
+            <button onClick={deleteAvatar}
+              className="text-sm text-red-400 hover:underline">
+              🗑 Hapus foto
+            </button>
+          )}
+
+          {uploading && <p className="text-sm text-gray-400">Uploading...</p>}
         </div>
 
-        <input value={username}
+        {/* USERNAME */}
+        <input
+          value={username}
           onChange={e=>setUsername(e.target.value)}
-          className="w-full p-3 mb-6 rounded-lg bg-black border"/>
+          className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-6"
+        />
 
-        <button onClick={updateProfile}
-          className="w-full bg-indigo-600 py-3 rounded-lg mb-10">
+        <button
+          onClick={updateProfile}
+          disabled={loading}
+          className="w-full bg-indigo-600 py-3 rounded-lg font-semibold mb-10">
           Save Profile
         </button>
 
-        <input type="password" placeholder="Minimal 6 karakter"
-          value={password} onChange={e=>setPassword(e.target.value)}
-          className="w-full p-3 mb-4 rounded-lg bg-black border"/>
+        {/* PASSWORD */}
+        <div className="border-t border-gray-800 pt-8">
+          <input type="password" placeholder="Minimal 6 karakter"
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-4"/>
+          <button onClick={changePassword}
+            className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg">
+            Change Password
+          </button>
+        </div>
 
-        <button onClick={changePassword}
-          className="w-full border py-3 rounded-lg">
-          Change Password
+        <button onClick={()=>router.push("/dashboard")}
+          className="mt-10 w-full border border-gray-700 py-3 rounded-lg">
+          ← Back to dashboard
         </button>
 
       </div>
     </main>
 
+    {/* PREVIEW */}
     {previewOpen && (
       <div onClick={()=>setPreviewOpen(false)}
-        className="fixed inset-0 bg-black/80 flex items-center justify-center">
-        <img src={getAvatarUrl()} className="max-w-[90vw] rounded-xl"/>
+        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+        <img src={getAvatarUrl()}
+          className="max-w-[90vw] max-h-[80vh] rounded-xl"/>
       </div>
     )}
 
+    {/* CROP */}
     {cropOpen && (
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
         <div className="bg-[#0F1624] p-6 rounded-2xl">
           <div
             onMouseDown={e=>startDrag(e.clientX,e.clientY)}
@@ -272,9 +326,10 @@ export default function Settings(){
             onTouchStart={e=>startDrag(e.touches[0].clientX,e.touches[0].clientY)}
             onTouchMove={e=>moveDrag(e.touches[0].clientX,e.touches[0].clientY)}
             onTouchEnd={stopDrag}
-            className="relative w-64 h-64 overflow-hidden rounded-full border">
+            className="relative w-64 h-64 overflow-hidden rounded-full border"
+          >
             <img ref={imgRef} src={rawImage}
-              className="absolute"
+              className="absolute select-none"
               style={{transform:`translate(${pos.x}px,${pos.y}px) scale(${zoom})`}}/>
           </div>
 

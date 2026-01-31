@@ -27,14 +27,13 @@ export default function Settings(){
   const imgRef = useRef(null)
 
   // =============================
-  // 🔥 GET AVATAR URL
+  // 🔥 AVATAR URL (FINAL, FIXED)
   // =============================
   const getAvatarUrl = ()=>{
     if(!avatar){
       return `https://ui-avatars.com/api/?name=${username || "User"}&background=6366f1&color=fff&size=256`
     }
-    if(avatar.startsWith("http")) return avatar
-    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${avatar}`
+    return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${avatar}`
   }
 
   // =============================
@@ -53,20 +52,14 @@ export default function Settings(){
       .single()
 
     if(!data){
-      const defaultUsername =
-        user.user_metadata?.username ||
-        user.email?.split("@")[0] ||
-        "User"
-
+      const uname = user.email.split("@")[0]
       await supabase.from("profiles").insert({
         id:user.id,
         email:user.email,
-        username:defaultUsername,
+        username:uname,
         avatar_url:null
       })
-
-      setUsername(defaultUsername)
-      setAvatar("")
+      setUsername(uname)
       return
     }
 
@@ -89,7 +82,7 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 APPLY CROP
+  // 🔥 APPLY CROP (FINAL)
   // =============================
   const applyCrop = async()=>{
     try{
@@ -116,18 +109,21 @@ export default function Settings(){
       ctx.drawImage(img, sx, sy, sSize, sSize, 0, 0, size, size)
 
       const blob = await new Promise(res=>{
-        canvas.toBlob(b=>res(b),"image/jpeg",0.85)
+        canvas.toBlob(b=>res(b),"image/jpeg",0.9)
       })
 
       const { data:{ user } } = await supabase.auth.getUser()
-      const path = `avatars/${user.id}.jpg`
 
-      await supabase.storage.from("avatars").upload(path, blob, {
-        upsert:true,
-        contentType:"image/jpeg"
-      })
+      // 🔥 PENTING: filename ONLY
+      const fileName = `${user.id}.jpg`
 
-      setAvatar(path)
+      await supabase.storage.from("avatars").upload(
+        fileName,
+        blob,
+        { upsert:true, contentType:"image/jpeg" }
+      )
+
+      setAvatar(fileName)
       setCropOpen(false)
       toast.success("Foto berhasil diupload 🔥")
 
@@ -145,7 +141,7 @@ export default function Settings(){
     const { data:{ user } } = await supabase.auth.getUser()
     if(!user) return
 
-    await supabase.storage.from("avatars").remove([`avatars/${user.id}.jpg`])
+    await supabase.storage.from("avatars").remove([`${user.id}.jpg`])
     await supabase.from("profiles")
       .update({ avatar_url:null })
       .eq("id",user.id)
@@ -155,37 +151,27 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 DRAG (MOUSE + TOUCH)
+  // 🔥 DRAG
   // =============================
-  const startDrag = (x,y)=>{
-    dragging.current = true
-    lastPos.current = { x, y }
-  }
-
-  const moveDrag = (x,y)=>{
+  const startDrag=(x,y)=>{ dragging.current=true; lastPos.current={x,y} }
+  const moveDrag=(x,y)=>{
     if(!dragging.current) return
-    setPos(p=>({
-      x:p.x + (x-lastPos.current.x),
-      y:p.y + (y-lastPos.current.y)
-    }))
-    lastPos.current = { x, y }
+    setPos(p=>({x:p.x+(x-lastPos.current.x),y:p.y+(y-lastPos.current.y)}))
+    lastPos.current={x,y}
   }
-
-  const stopDrag = ()=> dragging.current=false
+  const stopDrag=()=>dragging.current=false
 
   // =============================
   // 🔥 UPDATE PROFILE
   // =============================
   const updateProfile = async()=>{
     setLoading(true)
-    const load = toast.loading("Updating profile...")
     const { data:{ user } } = await supabase.auth.getUser()
 
     await supabase.from("profiles")
       .update({ username, avatar_url:avatar })
       .eq("id",user.id)
 
-    toast.dismiss(load)
     setLoading(false)
     toast.success("Profile updated 🔥")
   }
@@ -210,7 +196,6 @@ export default function Settings(){
 
         <h1 className="text-3xl font-bold mb-8">⚙️ Settings</h1>
 
-        {/* AVATAR */}
         <div className="flex flex-col items-center gap-4 mb-10">
           <img
             src={getAvatarUrl()}
@@ -223,52 +208,30 @@ export default function Settings(){
               📤 Upload Foto
             </div>
             <input type="file" accept="image/*" hidden
-              onChange={(e)=>e.target.files?.[0] && openCrop(e.target.files[0])}
-            />
+              onChange={e=>e.target.files?.[0] && openCrop(e.target.files[0])}/>
           </label>
 
           {avatar && (
-            <button
-              onClick={deleteAvatar}
-              className="text-sm text-red-400 hover:underline"
-            >
+            <button onClick={deleteAvatar}
+              className="text-sm text-red-400 hover:underline">
               🗑 Hapus foto
             </button>
           )}
-
-          {uploading && <p className="text-sm text-gray-400">Uploading...</p>}
         </div>
 
-        {/* USERNAME */}
-        <div className="mb-6">
-          <label className="text-sm text-gray-400">Username</label>
-          <input
-            value={username}
-            onChange={(e)=>setUsername(e.target.value)}
-            className="w-full p-3 mt-1 rounded-lg bg-[#070B14] border border-gray-700"
-          />
-        </div>
+        <input
+          value={username}
+          onChange={e=>setUsername(e.target.value)}
+          className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-6"
+        />
 
         <button onClick={updateProfile}
           className="w-full bg-indigo-600 py-3 rounded-lg font-semibold mb-10">
           Save Profile
         </button>
 
-        {/* PASSWORD */}
-        <div className="border-t border-gray-800 pt-8">
-          <input type="password" placeholder="Minimal 6 karakter"
-            value={password}
-            onChange={(e)=>setPassword(e.target.value)}
-            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-4"
-          />
-          <button onClick={changePassword}
-            className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg">
-            Change Password
-          </button>
-        </div>
-
         <button onClick={()=>router.push("/dashboard")}
-          className="mt-10 w-full border border-gray-700 py-3 rounded-lg">
+          className="w-full border border-gray-700 py-3 rounded-lg">
           ← Back to dashboard
         </button>
 
@@ -284,10 +247,10 @@ export default function Settings(){
       </div>
     )}
 
-    {/* CROP MODAL */}
+    {/* CROP */}
     {cropOpen && (
-      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-6">
-        <div className="bg-[#0F1624] p-6 rounded-2xl w-full max-w-sm">
+      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+        <div className="bg-[#0F1624] p-6 rounded-2xl">
           <div
             onMouseDown={e=>startDrag(e.clientX,e.clientY)}
             onMouseMove={e=>moveDrag(e.clientX,e.clientY)}
@@ -295,7 +258,7 @@ export default function Settings(){
             onTouchStart={e=>startDrag(e.touches[0].clientX,e.touches[0].clientY)}
             onTouchMove={e=>moveDrag(e.touches[0].clientX,e.touches[0].clientY)}
             onTouchEnd={stopDrag}
-            className="relative w-64 h-64 mx-auto overflow-hidden rounded-full border"
+            className="relative w-64 h-64 overflow-hidden rounded-full border"
           >
             <img ref={imgRef} src={rawImage}
               className="absolute select-none"
@@ -306,12 +269,10 @@ export default function Settings(){
             value={zoom} onChange={e=>setZoom(+e.target.value)}
             className="w-full mt-4"/>
 
-          <div className="flex gap-3 mt-6">
-            <button onClick={()=>setCropOpen(false)}
-              className="flex-1 border py-2 rounded-lg">Cancel</button>
-            <button onClick={applyCrop}
-              className="flex-1 bg-indigo-600 py-2 rounded-lg">Apply</button>
-          </div>
+          <button onClick={applyCrop}
+            className="w-full mt-4 bg-indigo-600 py-2 rounded-lg">
+            Apply
+          </button>
         </div>
       </div>
     )}

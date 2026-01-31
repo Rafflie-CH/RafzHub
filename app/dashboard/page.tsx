@@ -39,11 +39,15 @@ export default async function Home() {
 
   if (!user) redirect("/login")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("username, avatar_url, role")
-    .eq("id", user.id)
-    .maybeSingle()
+  const { data: profile, error } = await supabase
+  .from("profiles")
+  .select("username, avatar_url, role")
+  .eq("id", user.id)
+  .single()
+
+if (error) {
+  console.error("PROFILE ERROR:", error)
+}
 
   // 🔥 username fallback AMAN
   const username =
@@ -59,7 +63,10 @@ export default async function Home() {
     )}&background=6366f1&color=fff`
 
   // ❗ PENTING: JANGAN FORCE "member"
-  const role = profile?.role
+  const role =
+  profile?.role ??
+  user.user_metadata?.role ??
+  "member"
 
   return (
     <main className="min-h-screen bg-[#070B14] text-white">

@@ -27,7 +27,7 @@ export default function Settings(){
   const imgRef = useRef(null)
 
   // =============================
-  // 🔥 AVATAR URL (FIX BENER)
+  // 🔥 AVATAR URL (FINAL)
   // =============================
   const getAvatarUrl = ()=>{
     if(!avatar){
@@ -37,11 +37,9 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 PROFILE (FIX OVERRIDE)
+  // 🔥 PROFILE
   // =============================
-  useEffect(()=>{
-    getProfile()
-  },[])
+  useEffect(()=>{ getProfile() },[])
 
   const getProfile = async()=>{
     const { data:{ user } } = await supabase.auth.getUser()
@@ -58,21 +56,18 @@ export default function Settings(){
 
     if(!data){
       const uname = user.email.split("@")[0]
-
       await supabase.from("profiles").insert({
         id:user.id,
         email:user.email,
         username:uname,
         avatar_url:null
       })
-
       setUsername(uname)
       setAvatar("")
       return
     }
 
-    // 🔥 FIX: JANGAN TIMPA STATE KALAU SUDAH ADA
-    setUsername(prev => prev || data.username)
+    setUsername(data.username)
     setAvatar(data.avatar_url || "")
   }
 
@@ -91,7 +86,7 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 APPLY CROP + SAVE KE DB
+  // 🔥 APPLY CROP
   // =============================
   const applyCrop = async()=>{
     try{
@@ -124,18 +119,15 @@ export default function Settings(){
       const { data:{ user } } = await supabase.auth.getUser()
       const fileName = `${user.id}.jpg`
 
-      await supabase.storage
-        .from("avatars")
-        .upload(fileName, blob, {
-          upsert:true,
-          contentType:"image/jpeg"
-        })
+      await supabase.storage.from("avatars").upload(
+        fileName,
+        blob,
+        { upsert:true, contentType:"image/jpeg" }
+      )
 
-      // 🔥 SIMPAN PATH KE DB
-      await supabase
-        .from("profiles")
+      await supabase.from("profiles")
         .update({ avatar_url:fileName })
-        .eq("id", user.id)
+        .eq("id",user.id)
 
       setAvatar(fileName)
       setCropOpen(false)
@@ -165,76 +157,49 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 DRAG (MOUSE + TOUCH)
+  // 🔥 DRAG
   // =============================
-  const startDrag=(x,y)=>{
-    dragging.current=true
-    lastPos.current={x,y}
-  }
-
+  const startDrag=(x,y)=>{ dragging.current=true; lastPos.current={x,y} }
   const moveDrag=(x,y)=>{
     if(!dragging.current) return
-    setPos(p=>({
-      x:p.x+(x-lastPos.current.x),
-      y:p.y+(y-lastPos.current.y)
-    }))
+    setPos(p=>({x:p.x+(x-lastPos.current.x),y:p.y+(y-lastPos.current.y)}))
     lastPos.current={x,y}
   }
-
   const stopDrag=()=>dragging.current=false
 
   // =============================
-  // 🔥 UPDATE PROFILE
+  // 🔥 UPDATE PROFILE (FINAL FIX)
   // =============================
   const updateProfile = async()=>{
-  setLoading(true)
-  const load = toast.loading("Updating profile...")
+    setLoading(true)
+    const load = toast.loading("Updating profile...")
 
-  const { data:{ user } } = await supabase.auth.getUser()
-  if(!user){
-    toast.dismiss(load)
-    setLoading(false)
-    toast.error("User ga ada")
-    return
-  }
+    const { data:{ user } } = await supabase.auth.getUser()
 
-  // UPDATE TABLE profiles
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({
-      username,
-      avatar_url: avatar
+    const { error } = await supabase
+      .from("profiles")
+      .update({ username, avatar_url:avatar })
+      .eq("id",user.id)
+
+    if(error){
+      console.error(error)
+      toast.dismiss(load)
+      setLoading(false)
+      toast.error("DB nolak update ❌")
+      return
+    }
+
+    await supabase.auth.updateUser({
+      data:{ username }
     })
-    .eq("id", user.id)
 
-  if(profileError){
-    console.error(profileError)
     toast.dismiss(load)
     setLoading(false)
-    toast.error("DB nolak update ❌")
-    return
+    toast.success("Profile updated 🔥")
   }
-
-  // 🔥 UPDATE auth.user_metadata (INI KUNCI)
-  const { error: metaError } = await supabase.auth.updateUser({
-    data: { username }
-  })
-
-  if(metaError){
-    console.error(metaError)
-    toast.dismiss(load)
-    setLoading(false)
-    toast.error("Gagal sync auth metadata")
-    return
-  }
-
-  toast.dismiss(load)
-  setLoading(false)
-  toast.success("Profile updated 🔥")
-}
 
   // =============================
-  // 🔥 CHANGE PASSWORD
+  // 🔥 PASSWORD
   // =============================
   const changePassword = async()=>{
     if(password.length < 6){
@@ -253,76 +218,52 @@ export default function Settings(){
 
         <h1 className="text-3xl font-bold mb-8">⚙️ Settings</h1>
 
-        {/* AVATAR */}
         <div className="flex flex-col items-center gap-4 mb-10">
-          <img
-            src={getAvatarUrl()}
+          <img src={getAvatarUrl()}
             onClick={()=>setPreviewOpen(true)}
-            className="w-28 h-28 rounded-full object-cover border border-gray-700 cursor-pointer"
-          />
+            className="w-28 h-28 rounded-full object-cover border cursor-pointer"/>
 
           <label className="w-full">
-            <div className="flex justify-center py-3 border border-gray-700 rounded-lg cursor-pointer hover:border-indigo-500">
+            <div className="flex justify-center py-3 border rounded-lg cursor-pointer">
               📤 Upload Foto
             </div>
-            <input type="file" accept="image/*" hidden
+            <input type="file" hidden accept="image/*"
               onChange={e=>e.target.files?.[0] && openCrop(e.target.files[0])}/>
           </label>
 
-          {avatar && (
-            <button onClick={deleteAvatar}
-              className="text-sm text-red-400 hover:underline">
-              🗑 Hapus foto
-            </button>
-          )}
-
-          {uploading && <p className="text-sm text-gray-400">Uploading...</p>}
+          {avatar && <button onClick={deleteAvatar} className="text-red-400">🗑 Hapus foto</button>}
         </div>
 
-        {/* USERNAME */}
-        <input
-          value={username}
+        <input value={username}
           onChange={e=>setUsername(e.target.value)}
-          className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-6"
-        />
+          className="w-full p-3 mb-6 rounded-lg bg-black border"/>
 
         <button onClick={updateProfile}
-          className="w-full bg-indigo-600 py-3 rounded-lg font-semibold mb-10">
+          className="w-full bg-indigo-600 py-3 rounded-lg mb-10">
           Save Profile
         </button>
 
-        {/* PASSWORD */}
-        <div className="border-t border-gray-800 pt-8">
-          <input type="password" placeholder="Minimal 6 karakter"
-            value={password}
-            onChange={e=>setPassword(e.target.value)}
-            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-4"/>
-          <button onClick={changePassword}
-            className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg">
-            Change Password
-          </button>
-        </div>
+        <input type="password" placeholder="Minimal 6 karakter"
+          value={password} onChange={e=>setPassword(e.target.value)}
+          className="w-full p-3 mb-4 rounded-lg bg-black border"/>
 
-        <button onClick={()=>router.push("/dashboard")}
-          className="mt-10 w-full border border-gray-700 py-3 rounded-lg">
-          ← Back to dashboard
+        <button onClick={changePassword}
+          className="w-full border py-3 rounded-lg">
+          Change Password
         </button>
 
       </div>
     </main>
 
-    {/* PREVIEW */}
     {previewOpen && (
       <div onClick={()=>setPreviewOpen(false)}
-        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
-        <img src={getAvatarUrl()}
-          className="max-w-[90vw] max-h-[80vh] rounded-xl"/>
+        className="fixed inset-0 bg-black/80 flex items-center justify-center">
+        <img src={getAvatarUrl()} className="max-w-[90vw] rounded-xl"/>
       </div>
     )}
 
-    {/* CROP */}
     {cropOpen && (
-      <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/80 flex items-center justify-center">
         <div className="bg-[#0F1624] p-6 rounded-2xl">
           <div
             onMouseDown={e=>startDrag(e.clientX,e.clientY)}
@@ -331,10 +272,9 @@ export default function Settings(){
             onTouchStart={e=>startDrag(e.touches[0].clientX,e.touches[0].clientY)}
             onTouchMove={e=>moveDrag(e.touches[0].clientX,e.touches[0].clientY)}
             onTouchEnd={stopDrag}
-            className="relative w-64 h-64 overflow-hidden rounded-full border"
-          >
+            className="relative w-64 h-64 overflow-hidden rounded-full border">
             <img ref={imgRef} src={rawImage}
-              className="absolute select-none"
+              className="absolute"
               style={{transform:`translate(${pos.x}px,${pos.y}px) scale(${zoom})`}}/>
           </div>
 

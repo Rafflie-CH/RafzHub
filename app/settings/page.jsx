@@ -27,7 +27,7 @@ export default function Settings(){
   const imgRef = useRef(null)
 
   // =============================
-  // 🔥 AVATAR URL (FIX FINAL)
+  // 🔥 AVATAR URL (FIX BENER)
   // =============================
   const getAvatarUrl = ()=>{
     if(!avatar){
@@ -37,13 +37,18 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 PROFILE
+  // 🔥 PROFILE (FIX OVERRIDE)
   // =============================
-  useEffect(()=>{ getProfile() },[])
+  useEffect(()=>{
+    getProfile()
+  },[])
 
   const getProfile = async()=>{
     const { data:{ user } } = await supabase.auth.getUser()
-    if(!user){ router.replace("/login"); return }
+    if(!user){
+      router.replace("/login")
+      return
+    }
 
     const { data } = await supabase
       .from("profiles")
@@ -53,18 +58,21 @@ export default function Settings(){
 
     if(!data){
       const uname = user.email.split("@")[0]
+
       await supabase.from("profiles").insert({
         id:user.id,
         email:user.email,
         username:uname,
         avatar_url:null
       })
+
       setUsername(uname)
       setAvatar("")
       return
     }
 
-    setUsername(data.username)
+    // 🔥 FIX: JANGAN TIMPA STATE KALAU SUDAH ADA
+    setUsername(prev => prev || data.username)
     setAvatar(data.avatar_url || "")
   }
 
@@ -83,7 +91,7 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 APPLY CROP
+  // 🔥 APPLY CROP + SAVE KE DB
   // =============================
   const applyCrop = async()=>{
     try{
@@ -116,11 +124,18 @@ export default function Settings(){
       const { data:{ user } } = await supabase.auth.getUser()
       const fileName = `${user.id}.jpg`
 
-      await supabase.storage.from("avatars").upload(
-        fileName,
-        blob,
-        { upsert:true, contentType:"image/jpeg" }
-      )
+      await supabase.storage
+        .from("avatars")
+        .upload(fileName, blob, {
+          upsert:true,
+          contentType:"image/jpeg"
+        })
+
+      // 🔥 SIMPAN PATH KE DB
+      await supabase
+        .from("profiles")
+        .update({ avatar_url:fileName })
+        .eq("id", user.id)
 
       setAvatar(fileName)
       setCropOpen(false)
@@ -152,12 +167,20 @@ export default function Settings(){
   // =============================
   // 🔥 DRAG (MOUSE + TOUCH)
   // =============================
-  const startDrag=(x,y)=>{ dragging.current=true; lastPos.current={x,y} }
-  const moveDrag=(x,y)=>{
-    if(!dragging.current) return
-    setPos(p=>({x:p.x+(x-lastPos.current.x),y:p.y+(y-lastPos.current.y)}))
+  const startDrag=(x,y)=>{
+    dragging.current=true
     lastPos.current={x,y}
   }
+
+  const moveDrag=(x,y)=>{
+    if(!dragging.current) return
+    setPos(p=>({
+      x:p.x+(x-lastPos.current.x),
+      y:p.y+(y-lastPos.current.y)
+    }))
+    lastPos.current={x,y}
+  }
+
   const stopDrag=()=>dragging.current=false
 
   // =============================
@@ -169,12 +192,19 @@ export default function Settings(){
 
     const { data:{ user } } = await supabase.auth.getUser()
 
-    await supabase.from("profiles")
+    const { error } = await supabase
+      .from("profiles")
       .update({ username, avatar_url:avatar })
       .eq("id",user.id)
 
     toast.dismiss(load)
     setLoading(false)
+
+    if(error){
+      toast.error("Gagal update profile 😹")
+      return
+    }
+
     toast.success("Profile updated 🔥")
   }
 

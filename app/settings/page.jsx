@@ -191,8 +191,15 @@ export default function Settings(){
   const load = toast.loading("Updating profile...")
 
   const { data:{ user } } = await supabase.auth.getUser()
+  if(!user){
+    toast.dismiss(load)
+    setLoading(false)
+    toast.error("User ga ada")
+    return
+  }
 
-  const { error } = await supabase
+  // UPDATE TABLE profiles
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({
       username,
@@ -200,15 +207,29 @@ export default function Settings(){
     })
     .eq("id", user.id)
 
-  toast.dismiss(load)
-  setLoading(false)
-
-  if(error){
-    console.error("UPDATE PROFILE ERROR:", error)
+  if(profileError){
+    console.error(profileError)
+    toast.dismiss(load)
+    setLoading(false)
     toast.error("DB nolak update ❌")
     return
   }
 
+  // 🔥 UPDATE auth.user_metadata (INI KUNCI)
+  const { error: metaError } = await supabase.auth.updateUser({
+    data: { username }
+  })
+
+  if(metaError){
+    console.error(metaError)
+    toast.dismiss(load)
+    setLoading(false)
+    toast.error("Gagal sync auth metadata")
+    return
+  }
+
+  toast.dismiss(load)
+  setLoading(false)
   toast.success("Profile updated 🔥")
 }
 

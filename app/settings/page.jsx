@@ -187,26 +187,30 @@ export default function Settings(){
   // 🔥 UPDATE PROFILE
   // =============================
   const updateProfile = async()=>{
-    setLoading(true)
-    const load = toast.loading("Updating profile...")
+  setLoading(true)
+  const load = toast.loading("Updating profile...")
 
-    const { data:{ user } } = await supabase.auth.getUser()
+  const { data:{ user } } = await supabase.auth.getUser()
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ username, avatar_url:avatar })
-      .eq("id",user.id)
+  const { error } = await supabase
+    .from("profiles")
+    .update({
+      username,
+      avatar_url: avatar
+    })
+    .eq("id", user.id)
 
-    toast.dismiss(load)
-    setLoading(false)
+  toast.dismiss(load)
+  setLoading(false)
 
-    if(error){
-      toast.error("Gagal update profile 😹")
-      return
-    }
-
-    toast.success("Profile updated 🔥")
+  if(error){
+    console.error("UPDATE PROFILE ERROR:", error)
+    toast.error("DB nolak update ❌")
+    return
   }
+
+  toast.success("Profile updated 🔥")
+}
 
   // =============================
   // 🔥 CHANGE PASSWORD

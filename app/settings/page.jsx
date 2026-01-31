@@ -9,17 +9,18 @@ export default function Settings(){
 
   const router = useRouter()
 
-  const [loading,setLoading]=useState(false)
-  const [uploading,setUploading]=useState(false)
-  const [username,setUsername]=useState("")
-  const [avatar,setAvatar]=useState("")
-  const [password,setPassword]=useState("")
+  const [loading,setLoading] = useState(false)
+  const [uploading,setUploading] = useState(false)
+  const [username,setUsername] = useState("")
+  const [avatar,setAvatar] = useState("")
+  const [password,setPassword] = useState("")
 
   // crop state
-  const [cropOpen,setCropOpen]=useState(false)
-  const [rawImage,setRawImage]=useState(null)
-  const [zoom,setZoom]=useState(1)
-  const [pos,setPos]=useState({ x:0, y:0 })
+  const [cropOpen,setCropOpen] = useState(false)
+  const [rawImage,setRawImage] = useState(null)
+  const [zoom,setZoom] = useState(1)
+  const [pos,setPos] = useState({ x:0, y:0 })
+
   const dragging = useRef(false)
   const lastPos = useRef({ x:0, y:0 })
   const imgRef = useRef(null)
@@ -30,7 +31,6 @@ export default function Settings(){
   },[])
 
   const getProfile = async()=>{
-
     const { data:{ user } } = await supabase.auth.getUser()
 
     if(!user){
@@ -55,7 +55,7 @@ export default function Settings(){
     }
   }
 
-  // 🔥 open crop modal
+  // 🔥 open crop
   const openCrop = (file)=>{
     if(!file.type.startsWith("image/")){
       toast.error("File harus gambar 😹")
@@ -68,23 +68,29 @@ export default function Settings(){
     setCropOpen(true)
   }
 
-  // 🔥 apply crop + resize
+  // 🔥 apply crop + resize (FIXED)
   const applyCrop = async()=>{
     try{
       setUploading(true)
 
       const img = imgRef.current
       const size = 512
+
       const canvas = document.createElement("canvas")
       canvas.width = size
       canvas.height = size
       const ctx = canvas.getContext("2d")
 
-      const scale = img.naturalWidth / img.width
+      const scale = img.naturalWidth / img.clientWidth
 
-      const sx = (-pos.x) * scale
-      const sy = (-pos.y) * scale
-      const sSize = (img.width / zoom) * scale
+      const cropSize = img.clientWidth / zoom
+      let sx = (-pos.x + img.clientWidth/2 - cropSize/2) * scale
+      let sy = (-pos.y + img.clientHeight/2 - cropSize/2) * scale
+      let sSize = cropSize * scale
+
+      // clamp biar ga keluar gambar
+      sx = Math.max(0, Math.min(sx, img.naturalWidth - sSize))
+      sy = Math.max(0, Math.min(sy, img.naturalHeight - sSize))
 
       ctx.drawImage(
         img,
@@ -109,7 +115,7 @@ export default function Settings(){
 
       const { error } = await supabase.storage
         .from("avatars")
-        .upload(fileName,blob,{
+        .upload(fileName, blob, {
           upsert:true,
           contentType:"image/jpeg"
         })
@@ -140,17 +146,16 @@ export default function Settings(){
   const onMove = (e)=>{
     if(!dragging.current) return
     setPos(p=>({
-      x:p.x + (e.clientX - lastPos.current.x),
-      y:p.y + (e.clientY - lastPos.current.y)
+      x: p.x + (e.clientX - lastPos.current.x),
+      y: p.y + (e.clientY - lastPos.current.y)
     }))
     lastPos.current = { x:e.clientX, y:e.clientY }
   }
 
-  const onUp = ()=> dragging.current=false
+  const onUp = ()=> dragging.current = false
 
   // 🔥 UPDATE PROFILE
   const updateProfile = async()=>{
-
     setLoading(true)
     const load = toast.loading("Updating profile...")
 
@@ -160,7 +165,7 @@ export default function Settings(){
       .from("profiles")
       .update({
         username,
-        avatar_url:avatar
+        avatar_url: avatar
       })
       .eq("id",user?.id)
 
@@ -177,7 +182,6 @@ export default function Settings(){
 
   // 🔥 CHANGE PASSWORD
   const changePassword = async()=>{
-
     if(password.length < 6){
       toast.error("Password minimal 6 karakter 😹")
       return
@@ -201,7 +205,6 @@ export default function Settings(){
   return(
     <>
     <main className="min-h-screen bg-[#070B14] text-white flex justify-center py-20 px-6">
-
       <div className="w-full max-w-xl bg-[#0F1624] p-8 rounded-2xl border border-gray-800">
 
         <h1 className="text-3xl font-bold mb-8">⚙️ Settings</h1>
@@ -211,10 +214,15 @@ export default function Settings(){
 
           <img
             src={
-              avatar ||
-              `https://ui-avatars.com/api/?name=${username || "User"}&background=6366f1&color=fff&size=256`
+              avatar?.startsWith("http")
+                ? avatar
+                : `https://ui-avatars.com/api/?name=${username || "User"}&background=6366f1&color=fff&size=256`
             }
-            className="w-28 h-28 rounded-full object-cover border border-gray-700"
+            onError={(e)=>{
+              e.currentTarget.src =
+                `https://ui-avatars.com/api/?name=${username || "User"}&background=6366f1&color=fff&size=256`
+            }}
+            className="w-28 h-28 rounded-full object-cover border border-gray-700 bg-[#1f2937]"
           />
 
           <label className="w-full">
@@ -298,16 +306,17 @@ export default function Settings(){
 
           <div
             onMouseDown={onDown}
-            className="relative w-64 h-64 mx-auto overflow-hidden rounded-full border"
+            className="relative w-64 h-64 mx-auto overflow-hidden
+                       rounded-full border cursor-grab active:cursor-grabbing"
           >
             <img
               ref={imgRef}
               src={rawImage}
               draggable={false}
+              className="absolute top-0 left-0 select-none"
               style={{
                 transform:`translate(${pos.x}px,${pos.y}px) scale(${zoom})`
               }}
-              className="absolute top-0 left-0 select-none cursor-grab"
             />
           </div>
 

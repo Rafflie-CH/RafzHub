@@ -27,7 +27,7 @@ export default function Settings(){
   const imgRef = useRef(null)
 
   // =============================
-  // 🔥 AVATAR URL (FINAL, FIXED)
+  // 🔥 AVATAR URL (FIX FINAL)
   // =============================
   const getAvatarUrl = ()=>{
     if(!avatar){
@@ -60,6 +60,7 @@ export default function Settings(){
         avatar_url:null
       })
       setUsername(uname)
+      setAvatar("")
       return
     }
 
@@ -82,7 +83,7 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 APPLY CROP (FINAL)
+  // 🔥 APPLY CROP
   // =============================
   const applyCrop = async()=>{
     try{
@@ -113,8 +114,6 @@ export default function Settings(){
       })
 
       const { data:{ user } } = await supabase.auth.getUser()
-
-      // 🔥 PENTING: filename ONLY
       const fileName = `${user.id}.jpg`
 
       await supabase.storage.from("avatars").upload(
@@ -151,7 +150,7 @@ export default function Settings(){
   }
 
   // =============================
-  // 🔥 DRAG
+  // 🔥 DRAG (MOUSE + TOUCH)
   // =============================
   const startDrag=(x,y)=>{ dragging.current=true; lastPos.current={x,y} }
   const moveDrag=(x,y)=>{
@@ -166,12 +165,15 @@ export default function Settings(){
   // =============================
   const updateProfile = async()=>{
     setLoading(true)
+    const load = toast.loading("Updating profile...")
+
     const { data:{ user } } = await supabase.auth.getUser()
 
     await supabase.from("profiles")
       .update({ username, avatar_url:avatar })
       .eq("id",user.id)
 
+    toast.dismiss(load)
     setLoading(false)
     toast.success("Profile updated 🔥")
   }
@@ -196,6 +198,7 @@ export default function Settings(){
 
         <h1 className="text-3xl font-bold mb-8">⚙️ Settings</h1>
 
+        {/* AVATAR */}
         <div className="flex flex-col items-center gap-4 mb-10">
           <img
             src={getAvatarUrl()}
@@ -217,8 +220,11 @@ export default function Settings(){
               🗑 Hapus foto
             </button>
           )}
+
+          {uploading && <p className="text-sm text-gray-400">Uploading...</p>}
         </div>
 
+        {/* USERNAME */}
         <input
           value={username}
           onChange={e=>setUsername(e.target.value)}
@@ -230,8 +236,20 @@ export default function Settings(){
           Save Profile
         </button>
 
+        {/* PASSWORD */}
+        <div className="border-t border-gray-800 pt-8">
+          <input type="password" placeholder="Minimal 6 karakter"
+            value={password}
+            onChange={e=>setPassword(e.target.value)}
+            className="w-full p-3 rounded-lg bg-[#070B14] border border-gray-700 mb-4"/>
+          <button onClick={changePassword}
+            className="w-full border border-indigo-500 text-indigo-400 py-3 rounded-lg">
+            Change Password
+          </button>
+        </div>
+
         <button onClick={()=>router.push("/dashboard")}
-          className="w-full border border-gray-700 py-3 rounded-lg">
+          className="mt-10 w-full border border-gray-700 py-3 rounded-lg">
           ← Back to dashboard
         </button>
 
